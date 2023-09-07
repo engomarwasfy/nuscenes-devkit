@@ -25,9 +25,9 @@ def export_ego_poses(nusc: NuScenes, out_dir: str):
         os.makedirs(out_dir)
 
     for location in locations:
-        print('Rendering map {}...'.format(location))
+        print(f'Rendering map {location}...')
         nusc.render_egoposes_on_map(location)
-        out_path = os.path.join(out_dir, 'egoposes-{}.png'.format(location))
+        out_path = os.path.join(out_dir, f'egoposes-{location}.png')
         plt.tight_layout()
         plt.savefig(out_path)
 

@@ -30,8 +30,9 @@ class NuScenesCanBus:
         # Check that folder exists.
         self.can_dir = os.path.join(dataroot, 'can_bus')
         if not os.path.isdir(self.can_dir):
-            raise Exception('Error: CAN bus directory not found: %s. Please download it from '
-                            'https://www.nuscenes.org/download' % self.can_dir)
+            raise Exception(
+                f'Error: CAN bus directory not found: {self.can_dir}. Please download it from https://www.nuscenes.org/download'
+            )
 
         # Define blacklist for scenes where route and ego pose are not aligned.
         if max_misalignment == 5.0:
@@ -52,12 +53,16 @@ class NuScenesCanBus:
             161, 162, 163, 164, 165, 166, 167, 168, 170, 171, 172, 173, 174, 175, 176, 309, 310, 311, 312, 313, 314
         ]
 
-        # Define all messages.
-        self.can_messages = [
-            'ms_imu', 'pose', 'steeranglefeedback', 'vehicle_monitor', 'zoesensors', 'zoe_veh_info'
-        ]
         self.derived_messages = [
             'meta', 'route'
+        ]
+        self.can_messages = [
+            'ms_imu',
+            'pose',
+            'steeranglefeedback',
+            'vehicle_monitor',
+            'zoesensors',
+            'zoe_veh_info',
         ]
         self.all_messages = self.can_messages + self.derived_messages
 
@@ -155,7 +160,7 @@ class NuScenesCanBus:
         plt.plot(utimes, data, plot_format, markersize=1)
         plt.title(scene_name)
         plt.xlabel('Scene time in s')
-        plt.ylabel('%s - %s' % (message_name, key_name))
+        plt.ylabel(f'{message_name} - {key_name}')
         if out_path is not None:
             plt.savefig(out_path)
         plt.show()
@@ -219,24 +224,28 @@ class NuScenesCanBus:
         """
         # Check inputs. Scene names must be in the format scene-0123.
         assert re.match('^scene-\\d\\d\\d\\d$', scene_name)
-        assert message_name in self.all_messages, 'Error: Invalid CAN bus message name: %s' % message_name
+        assert (
+            message_name in self.all_messages
+        ), f'Error: Invalid CAN bus message name: {message_name}'
 
         # Check for data issues.
         scene_id = int(scene_name[-4:])
         if scene_id in self.can_blacklist:
             # Check for logs that have no CAN bus data.
-            raise Exception('Error: %s does not have any CAN bus data!' % scene_name)
+            raise Exception(f'Error: {scene_name} does not have any CAN bus data!')
         elif print_warnings:
             # Print warnings for scenes that are known to have bad data.
             if message_name == 'route':
                 if scene_id in self.route_blacklist:
-                    warnings.warn('Warning: %s is not well aligned with the baseline route!' % scene_name)
+                    warnings.warn(
+                        f'Warning: {scene_name} is not well aligned with the baseline route!'
+                    )
             elif message_name == 'vehicle_monitor':
-                if scene_id in [419]:
+                if scene_id in {419}:
                     warnings.warn('Warning: %s does not have any vehicle_monitor messages!')
 
         # Load messages.
-        message_path = os.path.join(self.can_dir, '%s_%s.json' % (scene_name, message_name))
+        message_path = os.path.join(self.can_dir, f'{scene_name}_{message_name}.json')
         with open(message_path, 'r') as f:
             messages = json.load(f)
         assert type(messages) in [list, dict]

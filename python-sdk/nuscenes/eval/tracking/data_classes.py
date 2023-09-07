@@ -87,7 +87,7 @@ class TrackingConfig:
         if self.dist_fcn == 'center_distance':
             return center_distance
         else:
-            raise Exception('Error: Unknown distance function %s!' % self.dist_fcn)
+            raise Exception(f'Error: Unknown distance function {self.dist_fcn}!')
 
 
 class TrackingMetricData(MetricData):
@@ -145,12 +145,7 @@ class TrackingMetricData(MetricData):
 
         # Last instance of confidence > 0 is index of max achieved recall.
         non_zero = np.nonzero(self.confidence)[0]
-        if len(non_zero) == 0:  # If there are no matches, all the confidence values will be zero.
-            max_recall_ind = 0
-        else:
-            max_recall_ind = non_zero[-1]
-
-        return max_recall_ind
+        return 0 if len(non_zero) == 0 else non_zero[-1]
 
     @property
     def max_recall(self):
@@ -159,10 +154,11 @@ class TrackingMetricData(MetricData):
 
     def serialize(self):
         """ Serialize instance into json-friendly format. """
-        ret_dict = dict()
-        for metric_name in ['confidence', 'recall_hypo'] + TrackingMetricData.metrics:
-            ret_dict[metric_name] = self.get_metric(metric_name).tolist()
-        return ret_dict
+        return {
+            metric_name: self.get_metric(metric_name).tolist()
+            for metric_name in ['confidence', 'recall_hypo']
+            + TrackingMetricData.metrics
+        }
 
     @classmethod
     def set_nelem(cls, nelem: int) -> None:
@@ -206,41 +202,41 @@ class TrackingMetrics:
         self.eval_time = None
         self.label_metrics: Dict[str, Dict[str, float]] = {}
         self.class_names = self.cfg.class_names
-        self.metric_names = [l for l in TRACKING_METRICS]
+        self.metric_names = list(TRACKING_METRICS)
 
         # Init every class.
         for metric_name in self.metric_names:
-            self.label_metrics[metric_name] = {}
-            for class_name in self.class_names:
-                self.label_metrics[metric_name][class_name] = np.nan
+            self.label_metrics[metric_name] = {
+                class_name: np.nan for class_name in self.class_names
+            }
 
     def add_label_metric(self, metric_name: str, tracking_name: str, value: float) -> None:
         assert metric_name in self.label_metrics
-        self.label_metrics[metric_name][tracking_name] = float(value)
+        self.label_metrics[metric_name][tracking_name] = value
 
     def add_runtime(self, eval_time: float) -> None:
         self.eval_time = eval_time
 
     def compute_metric(self, metric_name: str, class_name: str = 'all') -> float:
-        if class_name == 'all':
-            data = list(self.label_metrics[metric_name].values())
-            if len(data) > 0:
+        if class_name != 'all':
+            return float(self.label_metrics[metric_name][class_name])
+        if data := list(self.label_metrics[metric_name].values()):
                 # Some metrics need to be summed, not averaged.
                 # Nan entries are ignored.
-                if metric_name in ['mt', 'ml', 'tp', 'fp', 'fn', 'ids', 'frag']:
-                    return float(np.nansum(data))
-                else:
-                    return float(np.nanmean(data))
-            else:
-                return np.nan
+            return (
+                float(np.nansum(data))
+                if metric_name in {'mt', 'ml', 'tp', 'fp', 'fn', 'ids', 'frag'}
+                else float(np.nanmean(data))
+            )
         else:
-            return float(self.label_metrics[metric_name][class_name])
+            return np.nan
 
     def serialize(self) -> Dict[str, Any]:
-        metrics = dict()
-        metrics['label_metrics'] = self.label_metrics
-        metrics['eval_time'] = self.eval_time
-        metrics['cfg'] = self.cfg.serialize()
+        metrics = {
+            'label_metrics': self.label_metrics,
+            'eval_time': self.eval_time,
+            'cfg': self.cfg.serialize(),
+        }
         for metric_name in self.label_metrics.keys():
             metrics[metric_name] = self.compute_metric(metric_name)
 
@@ -260,9 +256,7 @@ class TrackingMetrics:
         eq = True
         eq = eq and self.label_metrics == other.label_metrics
         eq = eq and self.eval_time == other.eval_time
-        eq = eq and self.cfg == other.cfg
-
-        return eq
+        return eq and self.cfg == other.cfg
 
 
 class TrackingBox(EvalBox):
@@ -283,7 +277,9 @@ class TrackingBox(EvalBox):
         super().__init__(sample_token, translation, size, rotation, velocity, ego_translation, num_pts)
 
         assert tracking_name is not None, 'Error: tracking_name cannot be empty!'
-        assert tracking_name in TRACKING_NAMES, 'Error: Unknown tracking_name %s' % tracking_name
+        assert (
+            tracking_name in TRACKING_NAMES
+        ), f'Error: Unknown tracking_name {tracking_name}'
 
         assert type(tracking_score) == float, 'Error: tracking_score must be a float!'
         assert not np.any(np.isnan(tracking_score)), 'Error: tracking_score may not be NaN!'

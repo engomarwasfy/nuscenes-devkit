@@ -73,8 +73,9 @@ def paint_panop_points_label(panoptic_labels_filename: str,
             'Error: filter_panoptic_labels should be a list of class indices, eg. [9], [10, 21].'
 
         # Check that class indices in filter_panoptic_labels are valid.
-        assert all([0 <= x < len(name2idx) for x in filter_panoptic_labels]), \
-            f'All class indices in filter_panoptic_labels should be between 0 and {len(name2idx) - 1}'
+        assert all(
+            0 <= x < len(name2idx) for x in filter_panoptic_labels
+        ), f'All class indices in filter_panoptic_labels should be between 0 and {len(name2idx) - 1}'
 
         # Filter to get only the colors of the desired classes; this is done by setting the
         # alpha channel of the classes to be viewed to 1, and the rest to 0.
@@ -83,9 +84,7 @@ def paint_panop_points_label(panoptic_labels_filename: str,
             if id_i // 1000 not in filter_panoptic_labels:
                 colors[id_i, -1] = 0.0
 
-    coloring = colors[panoptic_labels]  # Shape: [num_points, 4]
-
-    return coloring
+    return colors[panoptic_labels]
 
 
 def get_frame_panoptic_instances(panoptic_label: np.ndarray, frame_id: int = None) -> np.ndarray:
@@ -138,7 +137,7 @@ def get_panoptic_instances_stats(scene_inst_stats: Dict[str, np.ndarray],
             },
         }
     """
-    assert len(scene_inst_stats) > 0, "Empty input data !"
+    assert scene_inst_stats, "Empty input data !"
     ncols = scene_inst_stats[list(scene_inst_stats.keys())[0]].shape[1]
     # Create database mat, add scene_id column, each row: (scene_id, frame_id, category_id, instance_id, num_points).
     data = np.empty((0, ncols + 1), dtype=np.int32)
@@ -159,10 +158,12 @@ def get_panoptic_instances_stats(scene_inst_stats: Dict[str, np.ndarray],
     per_frame_panoptic_stats = {'per_frame_num_instances': (mean_inst_num_per_frame, std_inst_num_per_frame)}
     if get_hist:
         inst_num_per_frame_hist = np.array(np.unique(inst_num_each_frame, return_counts=True)).T
-        per_frame_panoptic_stats.update({'per_frame_num_instances_hist': inst_num_per_frame_hist})
+        per_frame_panoptic_stats[
+            'per_frame_num_instances_hist'
+        ] = inst_num_per_frame_hist
 
     # 2. Per-category instance stats.
-    per_category_panoptic_stats = dict()
+    per_category_panoptic_stats = {}
     unique_cat_ids = np.array(np.unique(data_thing[:, 2]))
     # Need to make unique instance ID across scene, inst_id = 1000 * scene_id + inst_id
     unique_inst_ids = 1000 * data_thing[:, 0] + data_thing[:, 3]

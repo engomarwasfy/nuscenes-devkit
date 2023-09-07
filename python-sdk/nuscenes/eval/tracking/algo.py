@@ -150,11 +150,7 @@ class TrackingEvaluation(object):
                 print_threshold_metrics(thresh_summary.to_dict())
 
         # Concatenate all metrics. We only do this for more convenient access.
-        if len(thresh_metrics) == 0:
-            summary = []
-        else:
-            summary = pandas.concat(thresh_metrics)
-
+        summary = [] if not thresh_metrics else pandas.concat(thresh_metrics)
         # Get the number of thresholds which were not achieved (i.e. nan).
         unachieved_thresholds = np.array([t for t in thresholds if np.isnan(t)])
         num_unachieved_thresholds = len(unachieved_thresholds)
@@ -177,7 +173,7 @@ class TrackingEvaluation(object):
                 continue
 
             # Retrieve and store values for current metric.
-            if len(thresh_metrics) == 0:
+            if not thresh_metrics:
                 # Set all the worst possible value if no recall threshold is achieved.
                 worst = self.metric_worst[metric_name]
                 if worst == -1:
@@ -252,13 +248,13 @@ class TrackingEvaluation(object):
                 # Abort if there are neither GT nor pred boxes.
                 gt_ids = [gg.tracking_id for gg in frame_gt]
                 pred_ids = [tt.tracking_id for tt in frame_pred]
-                if len(gt_ids) == 0 and len(pred_ids) == 0:
+                if not gt_ids and not pred_ids:
                     continue
 
                 # Calculate distances.
                 # Note that the distance function is hard-coded to achieve significant speedups via vectorization.
                 assert self.dist_fcn.__name__ == 'center_distance'
-                if len(frame_gt) == 0 or len(frame_pred) == 0:
+                if not frame_gt or not frame_pred:
                     distances = np.ones((0, 0))
                 else:
                     gt_boxes = np.array([b.translation[:2] for b in frame_gt])

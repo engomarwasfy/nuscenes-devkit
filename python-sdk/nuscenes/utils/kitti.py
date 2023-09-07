@@ -67,7 +67,7 @@ class KittiDB:
         # Creating the tokens.
         self.tokens = []
         for split, tokens in self._kitti_tokens.items():
-            self.tokens += ['{}_{}'.format(split, token) for token in tokens]
+            self.tokens += [f'{split}_{token}' for token in tokens]
 
         # KITTI LIDAR has the x-axis pointing forward, but our LIDAR points to the right. So we need to apply a
         # 90 degree rotation around to yaw (z-axis) in order to align.
@@ -110,11 +110,7 @@ class KittiDB:
         }
 
         # Add score if specified
-        if len(parts) > 15:
-            output['score'] = float(parts[15])
-        else:
-            output['score'] = np.nan
-
+        output['score'] = float(parts[15]) if len(parts) > 15 else np.nan
         return output
 
     @staticmethod
@@ -209,7 +205,7 @@ class KittiDB:
             filepath = None
             print('No cheating! The test set has no labels.')
         else:
-            filepath = osp.join(root, folder, table, '{}.{}'.format(filename, ending))
+            filepath = osp.join(root, folder, table, f'{filename}.{ending}')
 
         return filepath
 
@@ -261,10 +257,9 @@ class KittiDB:
         """
         pc_filename = KittiDB.get_filepath(token, 'velodyne', root=root)
 
-        # The lidar PC is stored in the KITTI LIDAR coord system.
-        pc = LidarPointCloud(np.fromfile(pc_filename, dtype=np.float32).reshape(-1, 4).T)
-
-        return pc
+        return LidarPointCloud(
+            np.fromfile(pc_filename, dtype=np.float32).reshape(-1, 4).T
+        )
 
     def get_boxes(self,
                   token: str,
@@ -542,7 +537,7 @@ class KittiDB:
                         box.render(ax, view=transforms['p_left'][:3, :3], normalize=True, colors=(color, color, 'k'),
                                    linewidth=box_linewidth)
         else:
-            raise ValueError("Unrecognized modality {}.".format(sensor_modality))
+            raise ValueError(f"Unrecognized modality {sensor_modality}.")
 
         ax.axis('off')
         ax.set_title(token)

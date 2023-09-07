@@ -28,10 +28,7 @@ def category_to_detection_name(category_name: str) -> Optional[str]:
         'vehicle.truck': 'truck'
     }
 
-    if category_name in detection_mapping:
-        return detection_mapping[category_name]
-    else:
-        return None
+    return detection_mapping.get(category_name, None)
 
 
 def detection_name_to_rel_attributes(detection_name: str) -> List[str]:
@@ -40,17 +37,23 @@ def detection_name_to_rel_attributes(detection_name: str) -> List[str]:
     :param detection_name: The detection class.
     :return: List of relevant attributes.
     """
-    if detection_name in ['pedestrian']:
+    if detection_name in {'pedestrian'}:
         rel_attributes = ['pedestrian.moving', 'pedestrian.sitting_lying_down', 'pedestrian.standing']
-    elif detection_name in ['bicycle', 'motorcycle']:
+    elif detection_name in {'bicycle', 'motorcycle'}:
         rel_attributes = ['cycle.with_rider', 'cycle.without_rider']
-    elif detection_name in ['car', 'bus', 'construction_vehicle', 'trailer', 'truck']:
+    elif detection_name in {
+        'car',
+        'bus',
+        'construction_vehicle',
+        'trailer',
+        'truck',
+    }:
         rel_attributes = ['vehicle.moving', 'vehicle.parked', 'vehicle.stopped']
-    elif detection_name in ['barrier', 'traffic_cone']:
+    elif detection_name in {'barrier', 'traffic_cone'}:
         # Classes without attributes: barrier, traffic_cone.
         rel_attributes = []
     else:
-        raise ValueError('Error: %s is not a valid detection class.' % detection_name)
+        raise ValueError(f'Error: {detection_name} is not a valid detection class.')
 
     return rel_attributes
 

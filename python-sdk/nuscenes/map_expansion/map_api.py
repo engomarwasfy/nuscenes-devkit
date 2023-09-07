@@ -67,7 +67,7 @@ class NuScenesMap:
         :param map_name: Which map out of `singapore-onenorth`, `singepore-hollandvillage`, `singapore-queenstown`,
         `boston-seaport` that we want to load.
         """
-        assert map_name in locations, 'Error: Unknown map name %s!' % map_name
+        assert map_name in locations, f'Error: Unknown map name {map_name}!'
 
         self.dataroot = dataroot
         self.map_name = map_name
@@ -87,7 +87,9 @@ class NuScenesMap:
         self.layer_names = self.geometric_layers + self.lookup_polygon_layers + self.non_geometric_line_layers
 
         # Load the selected map.
-        self.json_fname = os.path.join(self.dataroot, 'maps', 'expansion', '{}.json'.format(self.map_name))
+        self.json_fname = os.path.join(
+            self.dataroot, 'maps', 'expansion', f'{self.map_name}.json'
+        )
         with open(self.json_fname, 'r') as fh:
             self.json_obj = json.load(fh)
 
@@ -148,9 +150,9 @@ class NuScenesMap:
 
     def _make_token2ind(self) -> None:
         """ Store the mapping from token to layer index for each layer. """
-        self._token2ind = dict()
+        self._token2ind = {}
         for layer_name in self.layer_names:
-            self._token2ind[layer_name] = dict()
+            self._token2ind[layer_name] = {}
 
             for ind, member in enumerate(getattr(self, layer_name)):
                 self._token2ind[layer_name][member['token']] = ind
@@ -160,9 +162,7 @@ class NuScenesMap:
 
         # Makes a shortcut between non geometric records to their nodes.
         for layer_name in self.non_geometric_polygon_layers:
-            if layer_name == 'drivable_area':  # Drivable area has more than one geometric representation.
-                pass
-            else:
+            if layer_name != 'drivable_area':
                 for record in self.__dict__[layer_name]:
                     polygon_obj = self.get('polygon', record['polygon_token'])
                     record['exterior_node_tokens'] = polygon_obj['exterior_node_tokens']
@@ -205,7 +205,7 @@ class NuScenesMap:
         :param token: Token of the record.
         :return: A single layer record.
         """
-        assert layer_name in self.layer_names, "Layer {} not found".format(layer_name)
+        assert layer_name in self.layer_names, f"Layer {layer_name} not found"
 
         return getattr(self, layer_name)[self.getind(layer_name, token)]
 
@@ -566,11 +566,10 @@ class NuScenesMap:
         :return: Arc line path representation of the lane.
         """
 
-        arcline_path = self.arcline_path_3.get(lane_token)
-        if not arcline_path:
+        if arcline_path := self.arcline_path_3.get(lane_token):
+            return arcline_path
+        else:
             raise ValueError(f'Error: Lane with token {lane_token} does not have a valid arcline path!')
-
-        return arcline_path
 
     def get_closest_lane(self, x: float, y: float, radius: float = 5) -> str:
         """
@@ -896,7 +895,7 @@ class NuScenesMapExplorer:
 
         for other_layer in other_layers:
             if other_layer not in self.map_api.non_geometric_layers:
-                raise ValueError("{} is not a non geometric layer".format(layer_name))
+                raise ValueError(f"{layer_name} is not a non geometric layer")
 
         x1, y1, x2, y2 = self.map_api.get_bounds(layer_name, token)
 
@@ -1081,16 +1080,18 @@ class NuScenesMapExplorer:
 
         # Check layers whether we can render them.
         for layer_name in layer_names:
-            assert layer_name in self.map_api.non_geometric_polygon_layers, \
-                'Error: Can only render non-geometry polygons: %s' % layer_names
+            assert (
+                layer_name in self.map_api.non_geometric_polygon_layers
+            ), f'Error: Can only render non-geometry polygons: {layer_names}'
 
         # Check that NuScenesMap was loaded for the correct location.
         sample_record = nusc.get('sample', sample_token)
         scene_record = nusc.get('scene', sample_record['scene_token'])
         log_record = nusc.get('log', scene_record['log_token'])
         log_location = log_record['location']
-        assert self.map_api.map_name == log_location, \
-            'Error: NuScenesMap loaded for location %s, should be %s!' % (self.map_api.map_name, log_location)
+        assert (
+            self.map_api.map_name == log_location
+        ), f'Error: NuScenesMap loaded for location {self.map_api.map_name}, should be {log_location}!'
 
         # Grab the front camera image and intrinsics.
         cam_token = sample_record['data'][camera_channel]
@@ -1173,12 +1174,11 @@ class NuScenesMapExplorer:
                     if render_outside_im:
                         if np.all(np.logical_not(inside)):
                             continue
-                    else:
-                        if np.any(np.logical_not(inside)):
-                            continue
+                    elif np.any(np.logical_not(inside)):
+                        continue
 
                     points = points[:2, :]
-                    points = [(p0, p1) for (p0, p1) in zip(points[0], points[1])]
+                    points = list(zip(points[0], points[1]))
                     polygon_proj = Polygon(points)
 
                     # Filter small polygons
@@ -1186,9 +1186,14 @@ class NuScenesMapExplorer:
                         continue
 
                     label = layer_name
-                    ax.add_patch(descartes.PolygonPatch(polygon_proj, fc=self.color_map[layer_name], alpha=alpha,
-                                                        label=label))
-
+                    ax.add_patch(
+                        descartes.PolygonPatch(
+                            polygon_proj,
+                            fc=self.color_map[label],
+                            alpha=alpha,
+                            label=label,
+                        )
+                    )
         # Display the image.
         plt.axis('off')
         ax.invert_yaxis()
@@ -1233,13 +1238,17 @@ class NuScenesMapExplorer:
         # Get logs by location.
         log_location = self.map_api.map_name
         log_tokens = [log['token'] for log in nusc.log if log['location'] == log_location]
-        assert len(log_tokens) > 0, 'Error: This split has 0 scenes for location %s!' % log_location
+        assert (
+            log_tokens
+        ), f'Error: This split has 0 scenes for location {log_location}!'
 
         # Filter scenes.
         scene_tokens_location = [e['token'] for e in nusc.scene if e['log_token'] in log_tokens]
         if scene_tokens is not None:
             scene_tokens_location = [t for t in scene_tokens_location if t in scene_tokens]
-        assert len(scene_tokens_location) > 0, 'Error: Found 0 valid scenes for location %s!' % log_location
+        assert (
+            scene_tokens_location
+        ), f'Error: Found 0 valid scenes for location {log_location}!'
 
         map_poses = []
         if verbose:
@@ -1251,11 +1260,13 @@ class NuScenesMapExplorer:
             scene_id = int(scene_name.replace('scene-', ''))
             log_record = nusc.get('log', scene_record['log_token'])
             assert log_record['location'] == log_location, \
-                'Error: The provided scene_tokens do not correspond to the provided map location!'
+                    'Error: The provided scene_tokens do not correspond to the provided map location!'
 
             # Print a warning if the localization is known to be bad.
             if verbose and scene_id in scene_blacklist:
-                print('Warning: %s is known to have a bad fit between ego pose and map.' % scene_name)
+                print(
+                    f'Warning: {scene_name} is known to have a bad fit between ego pose and map.'
+                )
 
             # For each sample in the scene, store the ego pose.
             sample_tokens = nusc.field2token('sample', 'scene_token', scene_token)
@@ -1270,7 +1281,7 @@ class NuScenesMapExplorer:
                 map_poses.append(pose_record['translation'])
 
         # Check that ego poses aren't empty.
-        assert len(map_poses) > 0, 'Error: Found 0 ego poses. Please check the inputs.'
+        assert map_poses, 'Error: Found 0 ego poses. Please check the inputs.'
 
         # Compute number of close ego poses.
         if verbose:
@@ -1362,7 +1373,7 @@ class NuScenesMapExplorer:
             if z_1 >= near_plane and z_2 >= near_plane:
                 # Both points are in front.
                 # Add both points unless the first is already added.
-                if len(points_clipped) == 0 or all(points_clipped[-1] != point_1):
+                if not points_clipped or all(points_clipped[-1] != point_1):
                     points_clipped.append(point_1)
                 points_clipped.append(point_2)
             elif z_1 < near_plane and z_2 < near_plane:
@@ -1388,14 +1399,15 @@ class NuScenesMapExplorer:
                 assert np.abs(clipped[2] - near_plane) < 1e-6
 
                 # Add the first point (if valid and not duplicate), the clipped point and the second point (if valid).
-                if z_1 >= near_plane and (len(points_clipped) == 0 or all(points_clipped[-1] != point_1)):
+                if z_1 >= near_plane and (
+                    not points_clipped or all(points_clipped[-1] != point_1)
+                ):
                     points_clipped.append(point_1)
                 points_clipped.append(clipped)
                 if z_2 >= near_plane:
                     points_clipped.append(point_2)
 
-        points_clipped = np.array(points_clipped).transpose()
-        return points_clipped
+        return np.array(points_clipped).transpose()
 
     def get_records_in_patch(self,
                              box_coords: Tuple[float, float, float, float],
@@ -1411,12 +1423,12 @@ class NuScenesMapExplorer:
         :return: Dictionary of layer_name - tokens pairs.
         """
         if mode not in ['intersect', 'within']:
-            raise ValueError("Mode {} is not valid, choice=('intersect', 'within')".format(mode))
+            raise ValueError(f"Mode {mode} is not valid, choice=('intersect', 'within')")
 
         if layer_names is None:
             layer_names = self.map_api.non_geometric_layers
 
-        records_in_patch = dict()
+        records_in_patch = {}
         for layer_name in layer_names:
             layer_records = []
             for record in getattr(self.map_api, layer_name):
@@ -1424,7 +1436,7 @@ class NuScenesMapExplorer:
                 if self.is_record_in_patch(layer_name, token, box_coords, mode):
                     layer_records.append(token)
 
-            records_in_patch.update({layer_name: layer_records})
+            records_in_patch[layer_name] = layer_records
 
         return records_in_patch
 
@@ -1443,14 +1455,14 @@ class NuScenesMapExplorer:
         :return: Boolean value on whether a particular record intersects or is within a particular patch.
         """
         if mode not in ['intersect', 'within']:
-            raise ValueError("Mode {} is not valid, choice=('intersect', 'within')".format(mode))
+            raise ValueError(f"Mode {mode} is not valid, choice=('intersect', 'within')")
 
         if layer_name in self.map_api.lookup_polygon_layers:
             return self._is_polygon_record_in_patch(token, layer_name, box_coords, mode)
         elif layer_name in self.map_api.non_geometric_line_layers:
             return self._is_line_record_in_patch(token, layer_name, box_coords,  mode)
         else:
-            raise ValueError("{} is not a valid layer".format(layer_name))
+            raise ValueError(f"{layer_name} is not a valid layer")
 
     def layers_on_point(self, x: float, y: float, layer_names: List[str] = None) -> Dict[str, str]:
         """
@@ -1464,11 +1476,10 @@ class NuScenesMapExplorer:
         if layer_names is None:
             layer_names = self.map_api.non_geometric_polygon_layers
 
-        layers_on_point = dict()
-        for layer_name in layer_names:
-            layers_on_point.update({layer_name: self.record_on_point(x, y, layer_name)})
-
-        return layers_on_point
+        return {
+            layer_name: self.record_on_point(x, y, layer_name)
+            for layer_name in layer_names
+        }
 
     def record_on_point(self, x: float, y: float, layer_name: str) -> str:
         """
@@ -1479,27 +1490,21 @@ class NuScenesMapExplorer:
         :return: The first token of a layer a particular point is on or '' if no layer is found.
         """
         if layer_name not in self.map_api.non_geometric_polygon_layers:
-            raise ValueError("{} is not a polygon layer".format(layer_name))
+            raise ValueError(f"{layer_name} is not a polygon layer")
 
         point = Point(x, y)
         records = getattr(self.map_api, layer_name)
 
-        if layer_name == 'drivable_area':
-            for record in records:
+        for record in records:
+            if layer_name == 'drivable_area':
                 polygons = [self.map_api.extract_polygon(polygon_token) for polygon_token in record['polygon_tokens']]
                 for polygon in polygons:
                     if point.within(polygon):
                         return record['token']
-                    else:
-                        pass
-        else:
-            for record in records:
+            else:
                 polygon = self.map_api.extract_polygon(record['polygon_token'])
                 if point.within(polygon):
                     return record['token']
-                else:
-                    pass
-
         # If nothing is found, return an empty string.
         return ''
 
@@ -1516,9 +1521,13 @@ class NuScenesMapExplorer:
 
         interiors = []
         for hole in polygon_record['holes']:
-            interior_coords = [(self.map_api.get('node', token)['x'], self.map_api.get('node', token)['y'])
-                               for token in hole['node_tokens']]
-            if len(interior_coords) > 0:  # Add only non-empty holes.
+            if interior_coords := [
+                (
+                    self.map_api.get('node', token)['x'],
+                    self.map_api.get('node', token)['y'],
+                )
+                for token in hole['node_tokens']
+            ]:
                 interiors.append(interior_coords)
 
         return Polygon(exterior_coords, interiors)
@@ -1547,7 +1556,7 @@ class NuScenesMapExplorer:
         elif layer_name in self.map_api.non_geometric_line_layers:
             return self._get_line_bounds(layer_name, token)
         else:
-            raise ValueError("{} is not a valid layer".format(layer_name))
+            raise ValueError(f"{layer_name} is not a valid layer")
 
     def _get_polygon_bounds(self, layer_name: str, token: str) -> Tuple[float, float, float, float]:
         """
@@ -1557,7 +1566,7 @@ class NuScenesMapExplorer:
         :return: min_x, min_y, max_x, max_y of of the polygon or polygons (for drivable_area) representation.
         """
         if layer_name not in self.map_api.non_geometric_polygon_layers:
-            raise ValueError("{} is not a record with polygon representation".format(token))
+            raise ValueError(f"{token} is not a record with polygon representation")
 
         record = self.map_api.get(layer_name, token)
 
@@ -1593,7 +1602,7 @@ class NuScenesMapExplorer:
         :return: min_x, min_y, max_x, max_y of of the line representation.
         """
         if layer_name not in self.map_api.non_geometric_line_layers:
-            raise ValueError("{} is not a record with line representation".format(token))
+            raise ValueError(f"{token} is not a record with line representation")
 
         record = self.map_api.get(layer_name, token)
         nodes = [self.map_api.get('node', node_token) for node_token in record['node_tokens']]
@@ -1625,7 +1634,7 @@ class NuScenesMapExplorer:
         :return: Boolean value on whether a particular polygon record intersects or is within a particular patch.
         """
         if layer_name not in self.map_api.lookup_polygon_layers:
-            raise ValueError('{} is not a polygonal layer'.format(layer_name))
+            raise ValueError(f'{layer_name} is not a polygonal layer')
 
         x_min, y_min, x_max, y_max = box_coords
         record = self.map_api.get(layer_name, token)
@@ -1657,7 +1666,7 @@ class NuScenesMapExplorer:
         :return: Boolean value on whether a particular line  record intersects or is within a particular patch.
         """
         if layer_name not in self.map_api.non_geometric_line_layers:
-            raise ValueError("{} is not a line layer".format(layer_name))
+            raise ValueError(f"{layer_name} is not a line layer")
 
         # Retrieve nodes of this line.
         record = self.map_api.get(layer_name, token)
@@ -1692,7 +1701,7 @@ class NuScenesMapExplorer:
         elif layer_name in self.map_api.non_geometric_line_layers:
             self._render_line_layer(ax, layer_name, alpha, tokens)
         else:
-            raise ValueError("{} is not a valid layer".format(layer_name))
+            raise ValueError(f"{layer_name} is not a valid layer")
 
     def _render_polygon_layer(self, ax: Axes, layer_name: str, alpha: float, tokens: List[str] = None) -> None:
         """
@@ -1703,14 +1712,14 @@ class NuScenesMapExplorer:
         :param tokens: Optional list of tokens to render. None means all tokens are rendered.
         """
         if layer_name not in self.map_api.non_geometric_polygon_layers:
-            raise ValueError('{} is not a polygonal layer'.format(layer_name))
+            raise ValueError(f'{layer_name} is not a polygonal layer')
 
         first_time = True
         records = getattr(self.map_api, layer_name)
         if tokens is not None:
             records = [r for r in records if r['token'] in tokens]
-        if layer_name == 'drivable_area':
-            for record in records:
+        for record in records:
+            if layer_name == 'drivable_area':
                 polygons = [self.map_api.extract_polygon(polygon_token) for polygon_token in record['polygon_tokens']]
 
                 for polygon in polygons:
@@ -1721,8 +1730,7 @@ class NuScenesMapExplorer:
                         label = None
                     ax.add_patch(descartes.PolygonPatch(polygon, fc=self.color_map[layer_name], alpha=alpha,
                                                         label=label))
-        else:
-            for record in records:
+            else:
                 polygon = self.map_api.extract_polygon(record['polygon_token'])
 
                 if first_time:
@@ -1743,7 +1751,7 @@ class NuScenesMapExplorer:
         :param tokens: Optional list of tokens to render. None means all tokens are rendered.
         """
         if layer_name not in self.map_api.non_geometric_line_layers:
-            raise ValueError("{} is not a line layer".format(layer_name))
+            raise ValueError(f"{layer_name} is not a line layer")
 
         first_time = True
         records = getattr(self.map_api, layer_name)
@@ -1784,7 +1792,7 @@ class NuScenesMapExplorer:
         elif layer_name in self.map_api.non_geometric_line_layers:
             return self._get_layer_line(patch_box, patch_angle, layer_name)
         else:
-            raise ValueError("{} is not a valid layer".format(layer_name))
+            raise ValueError(f"{layer_name} is not a valid layer")
 
     def _layer_geom_to_mask(self,
                             layer_name: str,
@@ -1804,7 +1812,7 @@ class NuScenesMapExplorer:
         elif layer_name in self.map_api.non_geometric_line_layers:
             return self._line_geom_to_mask(layer_geom, local_box, layer_name, canvas_size)
         else:
-            raise ValueError("{} is not a valid layer".format(layer_name))
+            raise ValueError(f"{layer_name} is not a valid layer")
 
     @staticmethod
     def mask_for_polygons(polygons: MultiPolygon, mask: np.ndarray) -> np.ndarray:
@@ -1861,7 +1869,7 @@ class NuScenesMapExplorer:
         :return: Binary map mask patch with the size canvas_size.
         """
         if layer_name not in self.map_api.non_geometric_polygon_layers:
-            raise ValueError('{} is not a polygonal layer'.format(layer_name))
+            raise ValueError(f'{layer_name} is not a polygonal layer')
 
         patch_x, patch_y, patch_h, patch_w = local_box
 
@@ -1906,7 +1914,7 @@ class NuScenesMapExplorer:
         :return: Binary map mask patch in a canvas size.
         """
         if layer_name not in self.map_api.non_geometric_line_layers:
-            raise ValueError("{} is not a line layer".format(layer_name))
+            raise ValueError(f"{layer_name} is not a line layer")
 
         patch_x, patch_y, patch_h, patch_w = local_box
 
@@ -1947,7 +1955,7 @@ class NuScenesMapExplorer:
          :return: List of Polygon in a patch box.
          """
         if layer_name not in self.map_api.non_geometric_polygon_layers:
-            raise ValueError('{} is not a polygonal layer'.format(layer_name))
+            raise ValueError(f'{layer_name} is not a polygonal layer')
 
         patch_x = patch_box[0]
         patch_y = patch_box[1]
@@ -1957,8 +1965,8 @@ class NuScenesMapExplorer:
         records = getattr(self.map_api, layer_name)
 
         polygon_list = []
-        if layer_name == 'drivable_area':
-            for record in records:
+        for record in records:
+            if layer_name == 'drivable_area':
                 polygons = [self.map_api.extract_polygon(polygon_token) for polygon_token in record['polygon_tokens']]
 
                 for polygon in polygons:
@@ -1972,8 +1980,7 @@ class NuScenesMapExplorer:
                             new_polygon = MultiPolygon([new_polygon])
                         polygon_list.append(new_polygon)
 
-        else:
-            for record in records:
+            else:
                 polygon = self.map_api.extract_polygon(record['polygon_token'])
 
                 if polygon.is_valid:
@@ -2001,7 +2008,7 @@ class NuScenesMapExplorer:
         :return: List of LineString in a patch box.
         """
         if layer_name not in self.map_api.non_geometric_line_layers:
-            raise ValueError("{} is not a line layer".format(layer_name))
+            raise ValueError(f"{layer_name} is not a line layer")
 
         if layer_name is 'traffic_light':
             return None
@@ -2068,4 +2075,4 @@ class NuScenesMapExplorer:
         elif type(figsize) == tuple and len(figsize) == 2:
             return figsize
         else:
-            raise Exception('Error: Invalid figsize: %s' % figsize)
+            raise Exception(f'Error: Invalid figsize: {figsize}')

@@ -89,12 +89,10 @@ class PredictHelper:
         Creates mapping to look up an annotation given a sample and instance in constant time.
         :return: Mapping from (sample_token, instance_token) -> sample_annotation_token.
         """
-        mapping = {}
-
-        for record in self.data.sample_annotation:
-            mapping[(record['sample_token'], record['instance_token'])] = record['token']
-
-        return mapping
+        return {
+            (record['sample_token'], record['instance_token']): record['token']
+            for record in self.data.sample_annotation
+        }
 
     def _timestamp_for_sample(self, sample_token: str) -> float:
         """

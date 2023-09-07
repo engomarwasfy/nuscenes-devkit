@@ -22,10 +22,13 @@ def prepare_files(method_names: List[str], root_dir: str) -> None:
     :param root_dir: The directory where the predictions of the various methods are stored at.
     """
     for method_name in method_names:
-        zip_path_to_predictions_by_method = os.path.join(root_dir, method_name + '.zip')
+        zip_path_to_predictions_by_method = os.path.join(
+            root_dir, f'{method_name}.zip'
+        )
         dir_path_to_predictions_by_method = os.path.join(root_dir, method_name)
-        assert os.path.exists(zip_path_to_predictions_by_method), 'Error: Zip file for method {} does not exist at {}.'\
-            .format(method_name, zip_path_to_predictions_by_method)
+        assert os.path.exists(
+            zip_path_to_predictions_by_method
+        ), f'Error: Zip file for method {method_name} does not exist at {zip_path_to_predictions_by_method}.'
         zip_ref = zipfile.ZipFile(zip_path_to_predictions_by_method, 'r')
         zip_ref.extractall(dir_path_to_predictions_by_method)
         zip_ref.close()
@@ -43,8 +46,9 @@ def get_prediction_json_path(prediction_dir: str) -> str:
     assert len(files_in_dir) == 1, 'Error: The submission .zip file must contain exactly one .json file.'
 
     prediction_json_path = os.path.join(prediction_dir, files_in_dir[0])
-    assert os.path.exists(prediction_json_path), \
-        'Error: JSON result file {} does not exist!'.format(prediction_json_path)
+    assert os.path.exists(
+        prediction_json_path
+    ), f'Error: JSON result file {prediction_json_path} does not exist!'
 
     return prediction_json_path
 
@@ -82,9 +86,11 @@ def panop_baselines_from_lidarseg_detect_track(out_dir: str,
 
     # Get all possible pairwise permutations.
     baselines = list(itertools.product(lidarseg_method_names, det_or_track_method_names))
-    print('There are {} baselines: {}'.format(len(baselines), baselines))
+    print(f'There are {len(baselines)} baselines: {baselines}')
 
-    print("Generating and evaluating {} panoptic {} baselines...".format(len(baselines), task))
+    print(
+        f"Generating and evaluating {len(baselines)} panoptic {task} baselines..."
+    )
     # Get the predictions for the panoptic task at hand.
     start_time = time.time()
 
@@ -100,8 +106,9 @@ def panop_baselines_from_lidarseg_detect_track(out_dir: str,
                                                                  verbose)
                  for lidarseg_method_name, det_or_track_method_name in baselines])
 
-    print("Generated and evaluated {} panoptic {} baselines in {} seconds.".format(
-        len(baselines), task, time.time() - start_time))
+    print(
+        f"Generated and evaluated {len(baselines)} panoptic {task} baselines in {time.time() - start_time} seconds."
+    )
 
 
 def generate_and_evaluate_baseline(out_dir: str,
@@ -132,8 +139,12 @@ def generate_and_evaluate_baseline(out_dir: str,
     nusc = NuScenes(version=version, dataroot=dataroot, verbose=verbose)
     eval_set = nusc.version.split('-')[-1]
 
-    dir_to_save_panoptic_preds_to = os.path.join(out_dir, task, 'panoptic_predictions',
-                                                 '{}_with_{}'.format(lidarseg_method_name, det_or_track_method_name))
+    dir_to_save_panoptic_preds_to = os.path.join(
+        out_dir,
+        task,
+        'panoptic_predictions',
+        f'{lidarseg_method_name}_with_{det_or_track_method_name}',
+    )
     os.makedirs(dir_to_save_panoptic_preds_to, exist_ok=True)
 
     dir_of_lidarseg_method_preds = os.path.join(lidarseg_preds_dir, lidarseg_method_name)
@@ -148,8 +159,12 @@ def generate_and_evaluate_baseline(out_dir: str,
                              task=task,
                              out_dir=dir_to_save_panoptic_preds_to)
 
-    dir_to_save_evaluation_results_to = os.path.join(out_dir, task, 'panoptic_eval_results', '{}_with_{}'.format(
-        lidarseg_method_name, det_or_track_method_name))
+    dir_to_save_evaluation_results_to = os.path.join(
+        out_dir,
+        task,
+        'panoptic_eval_results',
+        f'{lidarseg_method_name}_with_{det_or_track_method_name}',
+    )
     os.makedirs(dir_to_save_evaluation_results_to, exist_ok=True)
     dir_of_panoptic_preds = dir_to_save_panoptic_preds_to
     evaluator = NuScenesPanopticEval(nusc=nusc,
@@ -160,8 +175,9 @@ def generate_and_evaluate_baseline(out_dir: str,
                                      out_dir=dir_to_save_evaluation_results_to,
                                      verbose=verbose)
     evaluator.evaluate()
-    print('Evaluation for panoptic {} using predictions merged from {} and {} saved at {}.'
-          .format(task, lidarseg_method_name, det_or_track_method_name, dir_to_save_evaluation_results_to))
+    print(
+        f'Evaluation for panoptic {task} using predictions merged from {lidarseg_method_name} and {det_or_track_method_name} saved at {dir_to_save_evaluation_results_to}.'
+    )
 
 
 if __name__ == '__main__':

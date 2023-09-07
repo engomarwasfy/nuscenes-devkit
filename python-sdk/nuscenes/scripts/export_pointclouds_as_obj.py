@@ -44,7 +44,7 @@ def export_scene_pointcloud(nusc: NuScenes,
     valid_channels = ['LIDAR_TOP', 'RADAR_FRONT', 'RADAR_FRONT_RIGHT', 'RADAR_FRONT_LEFT', 'RADAR_BACK_LEFT',
                       'RADAR_BACK_RIGHT']
     camera_channels = ['CAM_FRONT_LEFT', 'CAM_FRONT', 'CAM_FRONT_RIGHT', 'CAM_BACK_LEFT', 'CAM_BACK', 'CAM_BACK_RIGHT']
-    assert channel in valid_channels, 'Input channel {} not valid.'.format(channel)
+    assert channel in valid_channels, f'Input channel {channel} not valid.'
 
     # Get records from DB.
     scene_rec = nusc.get('scene', scene_token)
@@ -64,7 +64,7 @@ def export_scene_pointcloud(nusc: NuScenes,
 
         for sd_token in tqdm(sd_tokens):
             if verbose:
-                print('Processing {}'.format(sd_rec['filename']))
+                print(f"Processing {sd_rec['filename']}")
             sc_rec = nusc.get('sample_data', sd_token)
             sample_rec = nusc.get('sample', sc_rec['sample_token'])
             lidar_token = sd_rec['token']
@@ -99,14 +99,11 @@ def export_scene_pointcloud(nusc: NuScenes,
 
             # Write points to file
             for (v, c) in zip(pc.points.transpose(), coloring.transpose()):
-                if (c == -1).any():
-                    # Ignore points without a color.
-                    pass
-                else:
+                if not (c == -1).any():
                     f.write("v {v[0]:.8f} {v[1]:.8f} {v[2]:.8f} {c[0]:.4f} {c[1]:.4f} {c[2]:.4f}\n"
                             .format(v=v, c=c/255.0))
 
-            if not sd_rec['next'] == "":
+            if sd_rec['next'] != "":
                 sd_rec = nusc.get('sample_data', sd_rec['next'])
 
 
@@ -189,20 +186,20 @@ if __name__ == '__main__':
     scene_name = args.scene
     verbose = bool(args.verbose)
 
-    out_path = osp.join(out_dir, '%s.obj' % scene_name)
+    out_path = osp.join(out_dir, f'{scene_name}.obj')
     if osp.exists(out_path):
-        print('=> File {} already exists. Aborting.'.format(out_path))
+        print(f'=> File {out_path} already exists. Aborting.')
         exit()
     else:
-        print('=> Extracting scene {} to {}'.format(scene_name, out_path))
+        print(f'=> Extracting scene {scene_name} to {out_path}')
 
     # Create output folder
-    if not out_dir == '' and not osp.isdir(out_dir):
+    if out_dir != '' and not osp.isdir(out_dir):
         os.makedirs(out_dir)
 
     # Extract pointcloud for the specified scene
     nusc = NuScenes()
     scene_tokens = [s['token'] for s in nusc.scene if s['name'] == scene_name]
-    assert len(scene_tokens) == 1, 'Error: Invalid scene %s' % scene_name
+    assert len(scene_tokens) == 1, f'Error: Invalid scene {scene_name}'
 
     export_scene_pointcloud(nusc, out_path, scene_tokens[0], channel='LIDAR_TOP', verbose=verbose)

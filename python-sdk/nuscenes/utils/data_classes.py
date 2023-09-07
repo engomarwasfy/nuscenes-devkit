@@ -251,7 +251,7 @@ class LidarPointCloud(PointCloud):
         :return: LidarPointCloud instance (x, y, z, intensity).
         """
 
-        assert file_name.endswith('.bin'), 'Unsupported filetype {}'.format(file_name)
+        assert file_name.endswith('.bin'), f'Unsupported filetype {file_name}'
 
         scan = np.fromfile(file_name, dtype=np.float32)
         points = scan.reshape((-1, 5))[:, :cls.nbr_dims()]
@@ -380,7 +380,7 @@ class RadarPointCloud(PointCloud):
         7: <=100%
         """
 
-        assert file_name.endswith('.pcd'), 'Unsupported filetype {}'.format(file_name)
+        assert file_name.endswith('.pcd'), f'Unsupported filetype {file_name}'
 
         meta = []
         with open(file_name, 'rb') as f:
@@ -403,7 +403,7 @@ class RadarPointCloud(PointCloud):
         data = meta[10].split(' ')[1]
         feature_count = len(types)
         assert width > 0
-        assert len([c for c in counts if c != c]) == 0, 'Error: COUNT not supported!'
+        assert not [c for c in counts if c != c], 'Error: COUNT not supported!'
         assert height == 1, 'Error: height != 0 not supported!'
         assert data == 'binary'
 
@@ -417,7 +417,7 @@ class RadarPointCloud(PointCloud):
         offset = 0
         point_count = width
         points = []
-        for i in range(point_count):
+        for _ in range(point_count):
             point = []
             for p in range(feature_count):
                 start_p = offset
@@ -479,8 +479,9 @@ class LidarSegPointCloud:
         """
         self.points = LidarPointCloud.from_file(path).points.T  # [N, 4], where N is the number of points.
         if self.labels is not None:
-            assert len(self.points) == len(self.labels), 'Error: There are {} points in the point cloud, ' \
-                                                         'but {} labels'.format(len(self.points), len(self.labels))
+            assert len(self.points) == len(
+                self.labels
+            ), f'Error: There are {len(self.points)} points in the point cloud, but {len(self.labels)} labels'
 
     def load_labels(self, path: str) -> None:
         """
@@ -489,8 +490,9 @@ class LidarSegPointCloud:
         """
         self.labels = load_bin_file(path)
         if self.points is not None:
-            assert len(self.points) == len(self.labels), 'Error: There are {} points in the point cloud, ' \
-                                                         'but {} labels'.format(len(self.points), len(self.labels))
+            assert len(self.points) == len(
+                self.labels
+            ), f'Error: There are {len(self.points)} points in the point cloud, but {len(self.labels)} labels'
 
     def render(self, name2color: Dict[str, Tuple[int]],
                name2id: Dict[str, int],
@@ -549,8 +551,8 @@ class Box:
         self.center = np.array(center)
         self.wlh = np.array(size)
         self.orientation = orientation
-        self.label = int(label) if not np.isnan(label) else label
-        self.score = float(score) if not np.isnan(score) else score
+        self.label = label if not np.isnan(label) else label
+        self.score = score if not np.isnan(score) else score
         self.velocity = np.array(velocity)
         self.name = name
         self.token = token

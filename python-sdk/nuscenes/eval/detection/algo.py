@@ -34,8 +34,9 @@ def accumulate(gt_boxes: EvalBoxes,
     # Count the positives.
     npos = len([1 for gt_box in gt_boxes.all if gt_box.detection_name == class_name])
     if verbose:
-        print("Found {} GT of class {} out of {} total across {} samples.".
-              format(npos, class_name, len(gt_boxes.all), len(gt_boxes.sample_tokens)))
+        print(
+            f"Found {npos} GT of class {class_name} out of {len(gt_boxes.all)} total across {len(gt_boxes.sample_tokens)} samples."
+        )
 
     # For missing classes in the GT, return a data structure corresponding to no predictions.
     if npos == 0:
@@ -46,8 +47,9 @@ def accumulate(gt_boxes: EvalBoxes,
     pred_confs = [box.detection_score for box in pred_boxes_list]
 
     if verbose:
-        print("Found {} PRED of class {} out of {} total across {} samples.".
-              format(len(pred_confs), class_name, len(pred_boxes.all), len(pred_boxes.sample_tokens)))
+        print(
+            f"Found {len(pred_confs)} PRED of class {class_name} out of {len(pred_boxes.all)} total across {len(pred_boxes.sample_tokens)} samples."
+        )
 
     # Sort by confidence.
     sortind = [i for (v, i) in sorted((v, i) for (i, v) in enumerate(pred_confs))][::-1]
@@ -78,7 +80,10 @@ def accumulate(gt_boxes: EvalBoxes,
         for gt_idx, gt_box in enumerate(gt_boxes[pred_box.sample_token]):
 
             # Find closest match among ground truth boxes
-            if gt_box.detection_name == class_name and not (pred_box.sample_token, gt_idx) in taken:
+            if (
+                gt_box.detection_name == class_name
+                and (pred_box.sample_token, gt_idx) not in taken
+            ):
                 this_distance = dist_fcn(gt_box, pred_box)
                 if this_distance < min_dist:
                     min_dist = this_distance
@@ -87,14 +92,14 @@ def accumulate(gt_boxes: EvalBoxes,
         # If the closest match is close enough according to threshold we have a match!
         is_match = min_dist < dist_th
 
+        conf.append(pred_box.detection_score)
+
         if is_match:
             taken.add((pred_box.sample_token, match_gt_idx))
 
             #  Update tp, fp and confs.
             tp.append(1)
             fp.append(0)
-            conf.append(pred_box.detection_score)
-
             # Since it is a match, update match data also.
             gt_box_match = gt_boxes[pred_box.sample_token][match_gt_idx]
 
@@ -113,8 +118,6 @@ def accumulate(gt_boxes: EvalBoxes,
             # No match. Mark this as a false positive.
             tp.append(0)
             fp.append(1)
-            conf.append(pred_box.detection_score)
-
     # Check if we have any matches. If not, just return a "no predictions" array.
     if len(match_data['trans_err']) == 0:
         return DetectionMetricData.no_predictions()
@@ -141,16 +144,15 @@ def accumulate(gt_boxes: EvalBoxes,
     # Re-sample the match-data to match, prec, recall and conf.
     # ---------------------------------------------
 
-    for key in match_data.keys():
+    for key in match_data:
         if key == "conf":
             continue  # Confidence is used as reference to align with fp and tp. So skip in this step.
 
-        else:
-            # For each match_data, we first calculate the accumulated mean.
-            tmp = cummean(np.array(match_data[key]))
+        # For each match_data, we first calculate the accumulated mean.
+        tmp = cummean(np.array(match_data[key]))
 
-            # Then interpolate based on the confidences. (Note reversing since np.interp needs increasing arrays)
-            match_data[key] = np.interp(conf[::-1], match_data['conf'][::-1], tmp[::-1])[::-1]
+        # Then interpolate based on the confidences. (Note reversing since np.interp needs increasing arrays)
+        match_data[key] = np.interp(conf[::-1], match_data['conf'][::-1], tmp[::-1])[::-1]
 
     # ---------------------------------------------
     # Done. Instantiate MetricData and return

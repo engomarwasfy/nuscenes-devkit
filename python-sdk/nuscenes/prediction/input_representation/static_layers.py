@@ -49,9 +49,7 @@ def get_patchbox(x_in_meters: float, y_in_meters: float,
     :return: Patch box tuple.
     """
 
-    patch_box = (x_in_meters, y_in_meters, image_side_length, image_side_length)
-
-    return patch_box
+    return x_in_meters, y_in_meters, image_side_length, image_side_length
 
 
 def change_color_of_binary_mask(image: np.ndarray, color: Color) -> np.ndarray:
@@ -77,12 +75,7 @@ def correct_yaw(yaw: float) -> float:
     :param yaw: Yaw angle to rotate the image.
     :return: Yaw after correction.
     """
-    if yaw <= 0:
-        yaw = -np.pi - yaw
-    else:
-        yaw = np.pi - yaw
-
-    return yaw
+    return -np.pi - yaw if yaw <= 0 else np.pi - yaw
 
 
 def get_lanes_in_radius(x: float, y: float, radius: float,
@@ -102,9 +95,7 @@ def get_lanes_in_radius(x: float, y: float, radius: float,
 
     lanes = map_api.get_records_in_radius(x, y, radius, ['lane', 'lane_connector'])
     lanes = lanes['lane'] + lanes['lane_connector']
-    lanes = map_api.discretize_lanes(lanes, discretization_meters)
-
-    return lanes
+    return map_api.discretize_lanes(lanes, discretization_meters)
 
 
 def color_by_yaw(agent_yaw_in_radians: float,
@@ -195,7 +186,7 @@ def draw_lanes_in_agent_frame(image_side_length: int,
     :return: np array with lanes drawn.
     """
 
-    agent_pixels = int(image_side_length / 2), int(image_side_length / 2)
+    agent_pixels = image_side_length // 2, image_side_length // 2
     base_image = np.zeros((image_side_length, image_side_length, 3))
 
     lanes = get_lanes_in_radius(agent_x, agent_y, radius, discretization_resolution_meters, map_api)
@@ -271,10 +262,12 @@ class StaticLayerRasterizer(StaticLayerRepresentation):
 
         masks = self.maps[map_name].get_map_mask(patchbox, angle_in_degrees, self.layer_names, canvas_size=canvas_size)
 
-        images = []
-        for mask, color in zip(masks, self.colors):
-            images.append(change_color_of_binary_mask(np.repeat(mask[::-1, :, np.newaxis], 3, 2), color))
-
+        images = [
+            change_color_of_binary_mask(
+                np.repeat(mask[::-1, :, np.newaxis], 3, 2), color
+            )
+            for mask, color in zip(masks, self.colors)
+        ]
         lanes = draw_lanes_in_agent_frame(image_side_length_pixels, x, y, yaw, radius=50,
                                           image_resolution=self.resolution, discretization_resolution_meters=1,
                                           map_api=self.maps[map_name])

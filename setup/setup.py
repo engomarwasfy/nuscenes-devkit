@@ -32,7 +32,10 @@ def get_dirlist(_rootdir):
 # Get subfolders recursively
 os.chdir('..')
 rootdir = 'python-sdk'
-packages = [d.replace('/', '.').replace('{}.'.format(rootdir), '') for d in get_dirlist(rootdir)]
+packages = [
+    d.replace('/', '.').replace(f'{rootdir}.', '')
+    for d in get_dirlist(rootdir)
+]
 
 # Filter out Python cache folders
 packages = [p for p in packages if not p.endswith('__pycache__')]

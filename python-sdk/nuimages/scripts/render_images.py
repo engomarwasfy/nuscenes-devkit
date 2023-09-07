@@ -44,10 +44,12 @@ def render_images(nuim: NuImages,
     :param cleanup: Whether to delete images after rendering the video. Not relevant for out_type == 'image'.
     """
     # Check and convert inputs.
-    assert out_type in ['image', 'video'], ' Error: Unknown out_type %s!' % out_type
+    assert out_type in {'image', 'video'}, f' Error: Unknown out_type {out_type}!'
     all_modes = ['image', 'annotated', 'trajectory']
-    assert mode in all_modes + ['all'], 'Error: Unknown mode %s!' % mode
-    assert not (out_type == 'video' and mode == 'trajectory'), 'Error: Cannot render "trajectory" for videos!'
+    assert mode in all_modes + ['all'], f'Error: Unknown mode {mode}!'
+    assert (
+        out_type != 'video' or mode != 'trajectory'
+    ), 'Error: Cannot render "trajectory" for videos!'
 
     if mode == 'all':
         if out_type == 'image':
@@ -55,14 +57,16 @@ def render_images(nuim: NuImages,
         elif out_type == 'video':
             modes = [m for m in all_modes if m not in ['annotated', 'trajectory']]
         else:
-            raise Exception('Error" Unknown mode %s!' % mode)
+            raise Exception(f'Error" Unknown mode {mode}!')
     else:
         modes = [mode]
 
     if filter_categories is not None:
         category_names = [c['name'] for c in nuim.category]
         for category_name in filter_categories:
-            assert category_name in category_names, 'Error: Invalid object_ann category %s!' % category_name
+            assert (
+                category_name in category_names
+            ), f'Error: Invalid object_ann category {category_name}!'
 
     # Create output folder.
     out_dir = os.path.expanduser(out_dir)
@@ -105,7 +109,7 @@ def render_images(nuim: NuImages,
             sample = nuim.get('sample', sample_token)
             key_camera_token = sample['key_camera_token']
             category_names = sd_to_object_cat_names[key_camera_token]
-            if any([c in category_names for c in filter_categories]):
+            if any(c in category_names for c in filter_categories):
                 sample_tokens_cleaned.append(sample_token)
         sample_tokens = sample_tokens_cleaned
 
@@ -115,7 +119,7 @@ def render_images(nuim: NuImages,
     # Limit number of samples.
     sample_tokens = sample_tokens[:sample_limit]
 
-    print('Rendering %s for mode %s to folder %s...' % (out_type, mode, out_dir))
+    print(f'Rendering {out_type} for mode {mode} to folder {out_dir}...')
     for sample_token in tqdm.tqdm(sample_tokens):
         sample = nuim.get('sample', sample_token)
         log = nuim.get('log', sample['log_token'])
@@ -127,13 +131,17 @@ def render_images(nuim: NuImages,
 
         # We cannot render a video if there are missing camera sample_datas.
         if len(sd_tokens) < 13 and out_type == 'video':
-            print('Warning: Skipping video for sample token %s, as not all 13 frames exist!' % sample_token)
+            print(
+                f'Warning: Skipping video for sample token {sample_token}, as not all 13 frames exist!'
+            )
             continue
 
         for mode in modes:
-            out_path_prefix = os.path.join(out_dir, '%s_%s_%s_%s' % (log_name, sample_token, sample_cam_name, mode))
+            out_path_prefix = os.path.join(
+                out_dir, f'{log_name}_{sample_token}_{sample_cam_name}_{mode}'
+            )
             if out_type == 'image':
-                write_image(nuim, key_camera_token, mode, '%s.jpg' % out_path_prefix)
+                write_image(nuim, key_camera_token, mode, f'{out_path_prefix}.jpg')
             elif out_type == 'video':
                 write_video(nuim, sd_tokens, mode, out_path_prefix, cleanup=cleanup)
 
@@ -162,7 +170,7 @@ def write_video(nuim: NuImages,
     first_im = cv2.imread(out_paths[0])
     freq = 2  # Display frequency (Hz).
     fourcc = cv2.VideoWriter_fourcc(*'MJPG')
-    video_path = '%s.avi' % out_path_prefix
+    video_path = f'{out_path_prefix}.avi'
     out = cv2.VideoWriter(video_path, fourcc, freq, first_im.shape[1::-1])
 
     # Load each image and add to the video.
@@ -194,7 +202,7 @@ def write_image(nuim: NuImages, sd_token: str, mode: str, out_path: str) -> None
         sample_data = nuim.get('sample_data', sd_token)
         nuim.render_trajectory(sample_data['sample_token'], out_path=out_path)
     else:
-        raise Exception('Error: Unknown mode %s!' % mode)
+        raise Exception(f'Error: Unknown mode {mode}!')
 
     # Trigger garbage collection to avoid memory overflow from the render functions.
     gc.collect()

@@ -21,10 +21,7 @@ class TestForeignKeys(unittest.TestCase):
         super().__init__()
 
         self.version = version
-        if dataroot is None:
-            self.dataroot = os.environ['NUIMAGES']
-        else:
-            self.dataroot = dataroot
+        self.dataroot = os.environ['NUIMAGES'] if dataroot is None else dataroot
         self.nuim = NuImages(version=self.version, dataroot=self.dataroot, verbose=False)
 
     def runTest(self) -> None:
@@ -38,9 +35,9 @@ class TestForeignKeys(unittest.TestCase):
         Test that every foreign key points to a valid token.
         """
         # Index the tokens of all tables.
-        index = dict()
+        index = {}
         for table_name in self.nuim.table_names:
-            print('Indexing table %s...' % table_name)
+            print(f'Indexing table {table_name}...')
             table: list = self.nuim.__getattr__(table_name)
             tokens = [row['token'] for row in table]
             index[table_name] = set(tokens)
@@ -48,16 +45,16 @@ class TestForeignKeys(unittest.TestCase):
         # Go through each table and check the foreign_keys.
         for table_name in self.nuim.table_names:
             table: List[Dict[str, Any]] = self.nuim.__getattr__(table_name)
-            if self.version.endswith('-test') and len(table) == 0:  # Skip test annotations.
+            if self.version.endswith('-test') and not table:  # Skip test annotations.
                 continue
             keys = table[0].keys()
 
             # Check 1-to-1 link.
             one_to_one_names = [k for k in keys if k.endswith('_token') and not k.startswith('key_')]
             for foreign_key_name in one_to_one_names:
-                print('Checking one-to-one key %s in table %s...' % (foreign_key_name, table_name))
+                print(f'Checking one-to-one key {foreign_key_name} in table {table_name}...')
                 foreign_table_name = foreign_key_name.replace('_token', '')
-                foreign_tokens = set([row[foreign_key_name] for row in table])
+                foreign_tokens = {row[foreign_key_name] for row in table}
 
                 # Check all tokens are valid.
                 if self.version.endswith('-mini') and foreign_table_name == 'category':
@@ -67,27 +64,44 @@ class TestForeignKeys(unittest.TestCase):
 
                 # Check all tokens are covered.
                 # By default we check that all tokens are covered. Exceptions are listed below.
-                if table_name == 'object_ann':
-                    if foreign_table_name == 'category':
-                        remove = set([cat['token'] for cat in self.nuim.category if cat['name']
-                                      in ['vehicle.ego', 'flat.driveable_surface']])
-                        foreign_index = foreign_index.difference(remove)
-                    elif foreign_table_name == 'sample_data':
-                        foreign_index = None  # Skip as sample_datas may have no object_ann.
-                elif table_name == 'surface_ann':
-                    if foreign_table_name == 'category':
-                        remove = set([cat['token'] for cat in self.nuim.category if cat['name']
-                                      not in ['vehicle.ego', 'flat.driveable_surface']])
-                        foreign_index = foreign_index.difference(remove)
-                    elif foreign_table_name == 'sample_data':
-                        foreign_index = None  # Skip as sample_datas may have no surface_ann.
+                if table_name == 'object_ann' and foreign_table_name == 'category':
+                    remove = {
+                        cat['token']
+                        for cat in self.nuim.category
+                        if cat['name'] in ['vehicle.ego', 'flat.driveable_surface']
+                    }
+                    foreign_index = foreign_index.difference(remove)
+                elif (
+                    table_name == 'object_ann'
+                    and foreign_table_name == 'sample_data'
+                    or table_name != 'object_ann'
+                    and table_name == 'surface_ann'
+                    and foreign_table_name != 'category'
+                    and foreign_table_name == 'sample_data'
+                ):
+                    foreign_index = None  # Skip as sample_datas may have no object_ann.
+                elif (
+                    table_name != 'object_ann'
+                    and (
+                        table_name != 'surface_ann'
+                        or foreign_table_name == 'category'
+                    )
+                    and table_name == 'surface_ann'
+                ):
+                    remove = {
+                        cat['token']
+                        for cat in self.nuim.category
+                        if cat['name']
+                        not in ['vehicle.ego', 'flat.driveable_surface']
+                    }
+                    foreign_index = foreign_index.difference(remove)
                 if foreign_index is not None:
                     self.assertEqual(foreign_tokens, foreign_index)
 
             # Check 1-to-many link.
             one_to_many_names = [k for k in keys if k.endswith('_tokens')]
             for foreign_key_name in one_to_many_names:
-                print('Checking one-to-many key %s in table %s...' % (foreign_key_name, table_name))
+                print(f'Checking one-to-many key {foreign_key_name} in table {table_name}...')
                 foreign_table_name = foreign_key_name.replace('_tokens', '')
                 foreign_tokens_nested = [row[foreign_key_name] for row in table]
                 foreign_tokens = set(itertools.chain(*foreign_tokens_nested))
@@ -105,9 +119,13 @@ class TestForeignKeys(unittest.TestCase):
             # Check prev and next.
             prev_next_names = [k for k in keys if k in ['previous', 'next']]
             for foreign_key_name in prev_next_names:
-                print('Checking prev-next key %s in table %s...' % (foreign_key_name, table_name))
+                print(f'Checking prev-next key {foreign_key_name} in table {table_name}...')
                 foreign_table_name = table_name
-                foreign_tokens = set([row[foreign_key_name] for row in table if len(row[foreign_key_name]) > 0])
+                foreign_tokens = {
+                    row[foreign_key_name]
+                    for row in table
+                    if len(row[foreign_key_name]) > 0
+                }
 
                 # Check that all tokens are valid.
                 foreign_index = index[foreign_table_name]
@@ -140,7 +158,7 @@ class TestForeignKeys(unittest.TestCase):
 if __name__ == '__main__':
     # Runs the tests without aborting on error.
     for nuim_version in ['v1.0-train', 'v1.0-val', 'v1.0-test', 'v1.0-mini']:
-        print('Running TestForeignKeys for version %s...' % nuim_version)
+        print(f'Running TestForeignKeys for version {nuim_version}...')
         test = TestForeignKeys(version=nuim_version)
         test.test_foreign_keys()
         test.test_prev_next()

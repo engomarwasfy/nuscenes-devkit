@@ -94,7 +94,7 @@ def visualize_sample(nusc: NuScenes,
 
     # Show / save plot.
     if verbose:
-        print('Rendering sample token %s' % sample_token)
+        print(f'Rendering sample token {sample_token}')
     plt.title(sample_token)
     if savepath is not None:
         plt.savefig(savepath)
@@ -163,7 +163,15 @@ def class_tp_curve(md_list: DetectionMetricDataList,
     if min_recall_ind <= md.max_recall_ind:
         # For traffic_cone and barrier only a subset of the metrics are plotted.
         rel_metrics = [m for m in TP_METRICS if not np.isnan(metrics.get_label_tp(detection_name, m))]
-        ylimit = max([max(getattr(md, metric)[min_recall_ind:md.max_recall_ind + 1]) for metric in rel_metrics]) * 1.1
+        ylimit = (
+            max(
+                max(
+                    getattr(md, metric)[min_recall_ind : md.max_recall_ind + 1]
+                )
+                for metric in rel_metrics
+            )
+            * 1.1
+        )
     else:
         ylimit = 1.0
 
@@ -185,9 +193,9 @@ def class_tp_curve(md_list: DetectionMetricDataList,
 
         # Change legend based on tp value
         if tp is np.nan:
-            label = '{}: n/a'.format(PRETTY_TP_METRICS[metric])
+            label = f'{PRETTY_TP_METRICS[metric]}: n/a'
         elif min_recall_ind > md.max_recall_ind:
-            label = '{}: nan'.format(PRETTY_TP_METRICS[metric])
+            label = f'{PRETTY_TP_METRICS[metric]}: nan'
         else:
             label = '{}: {:.2f} ({})'.format(PRETTY_TP_METRICS[metric], tp, TP_METRICS_UNITS[metric])
         ax.plot(recall, error, label=label)
@@ -258,7 +266,10 @@ def summary_plot(md_list: DetectionMetricDataList,
 
         ax1 = setup_axis(xlim=1, ylim=1, title=title1, min_precision=min_precision,
                          min_recall=min_recall, ax=axes[ind, 0])
-        ax1.set_ylabel('{} \n \n Precision'.format(PRETTY_DETECTION_NAMES[detection_name]), size=20)
+        ax1.set_ylabel(
+            f'{PRETTY_DETECTION_NAMES[detection_name]} \n \n Precision',
+            size=20,
+        )
 
         ax2 = setup_axis(xlim=1, title=title2, min_recall=min_recall, ax=axes[ind, 1])
         if ind == n_classes - 1:
@@ -284,8 +295,7 @@ def detailed_results_table_tex(metrics_path: str, output_path: str) -> None:
     with open(metrics_path, 'r') as f:
         metrics = json.load(f)
 
-    tex = ''
-    tex += '\\begin{table}[]\n'
+    tex = '' + '\\begin{table}[]\n'
     tex += '\\small\n'
     tex += '\\begin{tabular}{| c | c | c | c | c | c | c |} \\hline\n'
     tex += '\\textbf{Class}    &   \\textbf{AP}  &   \\textbf{ATE} &   \\textbf{ASE} & \\textbf{AOE}   & ' \
@@ -297,16 +307,16 @@ def detailed_results_table_tex(metrics_path: str, output_path: str) -> None:
         ate = metrics['label_tp_errors'][name]['trans_err']
         ase = metrics['label_tp_errors'][name]['scale_err']
         aoe = metrics['label_tp_errors'][name]['orient_err']
-        ave = metrics['label_tp_errors'][name]['vel_err']
-        aae = metrics['label_tp_errors'][name]['attr_err']
         tex_name = PRETTY_DETECTION_NAMES[name]
-        if name == 'traffic_cone':
-            tex += '{}  &   {:.1f}  &   {:.2f}  &   {:.2f}  &   N/A  &   N/A  &   N/A  \\\\ \\hline\n'.format(
-                tex_name, ap, ate, ase)
-        elif name == 'barrier':
+        if name == 'barrier':
             tex += '{}  &   {:.1f}  &   {:.2f}  &   {:.2f}  &   {:.2f}  &   N/A  &   N/A  \\\\ \\hline\n'.format(
                 tex_name, ap, ate, ase, aoe)
+        elif name == 'traffic_cone':
+            tex += '{}  &   {:.1f}  &   {:.2f}  &   {:.2f}  &   N/A  &   N/A  &   N/A  \\\\ \\hline\n'.format(
+                tex_name, ap, ate, ase)
         else:
+            ave = metrics['label_tp_errors'][name]['vel_err']
+            aae = metrics['label_tp_errors'][name]['attr_err']
             tex += '{}  &   {:.1f}  &   {:.2f}  &   {:.2f}  &   {:.2f}  &   {:.2f}  &   {:.2f}  \\\\ ' \
                    '\\hline\n'.format(tex_name, ap, ate, ase, aoe, ave, aae)
 
@@ -324,11 +334,11 @@ def detailed_results_table_tex(metrics_path: str, output_path: str) -> None:
     # All one line
     tex += '\\caption{Detailed detection performance on the val set. \n'
     tex += 'AP: average precision averaged over distance thresholds (%), \n'
-    tex += 'ATE: average translation error (${}$), \n'.format(TP_METRICS_UNITS['trans_err'])
-    tex += 'ASE: average scale error (${}$), \n'.format(TP_METRICS_UNITS['scale_err'])
-    tex += 'AOE: average orientation error (${}$), \n'.format(TP_METRICS_UNITS['orient_err'])
-    tex += 'AVE: average velocity error (${}$), \n'.format(TP_METRICS_UNITS['vel_err'])
-    tex += 'AAE: average attribute error (${}$). \n'.format(TP_METRICS_UNITS['attr_err'])
+    tex += f"ATE: average translation error (${TP_METRICS_UNITS['trans_err']}$), \n"
+    tex += f"ASE: average scale error (${TP_METRICS_UNITS['scale_err']}$), \n"
+    tex += f"AOE: average orientation error (${TP_METRICS_UNITS['orient_err']}$), \n"
+    tex += f"AVE: average velocity error (${TP_METRICS_UNITS['vel_err']}$), \n"
+    tex += f"AAE: average attribute error (${TP_METRICS_UNITS['attr_err']}$). \n"
     tex += 'nuScenes Detection Score (NDS) = {:.1f} \n'.format(metrics['nd_score'] * 100)
     tex += '}\n'
 

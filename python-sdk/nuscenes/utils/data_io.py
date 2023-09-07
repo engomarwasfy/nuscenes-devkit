@@ -9,14 +9,14 @@ def load_bin_file(bin_path: str, type: str = 'lidarseg') -> np.ndarray:
     :param type: semantic type, 'lidarseg': stored in 8-bit format, 'panoptic': store in 32-bit format.
     :return: An array containing the labels, with dtype of np.uint8 for lidarseg and np.int32 for panoptic.
     """
-    assert os.path.exists(bin_path), 'Error: Unable to find {}.'.format(bin_path)
+    assert os.path.exists(bin_path), f'Error: Unable to find {bin_path}.'
     if type == 'lidarseg':
         bin_content = np.fromfile(bin_path, dtype=np.uint8)
     elif type == 'panoptic':
         bin_content = np.load(bin_path)['data']
     else:
         raise TypeError(f"Only lidarseg/panoptic type is supported, received {type}")
-    assert len(bin_content) > 0, 'Error: {} is empty.'.format(bin_path)
+    assert len(bin_content) > 0, f'Error: {bin_path} is empty.'
 
     return bin_content
 

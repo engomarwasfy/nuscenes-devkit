@@ -34,26 +34,32 @@ class MOTAccumulatorCustom(motmetrics.mot.MOTAccumulator):
             'Type', 'OId', HId', 'D'
         """
         idx = pd.MultiIndex.from_tuples(indices, names=['FrameId', 'Event'])
-        df = pd.DataFrame(events, index=idx, columns=['Type', 'OId', 'HId', 'D'])
-        return df
+        return pd.DataFrame(events, index=idx, columns=['Type', 'OId', 'HId', 'D'])
 
     @staticmethod
     def new_event_dataframe():
         """ Create a new DataFrame for event tracking. """
         idx = pd.MultiIndex(levels=[[], []], codes=[[], []], names=['FrameId', 'Event'])
         cats = pd.Categorical([], categories=['RAW', 'FP', 'MISS', 'SWITCH', 'MATCH'])
-        df = pd.DataFrame(
-            OrderedDict([
-                ('Type', pd.Series(cats)),  # Type of event. One of FP (false positive), MISS, SWITCH, MATCH
-                ('OId', pd.Series(dtype=object)),
-                # Object ID or -1 if FP. Using float as missing values will be converted to NaN anyways.
-                ('HId', pd.Series(dtype=object)),
-                # Hypothesis ID or NaN if MISS. Using float as missing values will be converted to NaN anyways.
-                ('D', pd.Series(dtype=float)),  # Distance or NaN when FP or MISS
-            ]),
-            index=idx
+        return pd.DataFrame(
+            OrderedDict(
+                [
+                    (
+                        'Type',
+                        pd.Series(cats),
+                    ),  # Type of event. One of FP (false positive), MISS, SWITCH, MATCH
+                    ('OId', pd.Series(dtype=object)),
+                    # Object ID or -1 if FP. Using float as missing values will be converted to NaN anyways.
+                    ('HId', pd.Series(dtype=object)),
+                    # Hypothesis ID or NaN if MISS. Using float as missing values will be converted to NaN anyways.
+                    (
+                        'D',
+                        pd.Series(dtype=float),
+                    ),  # Distance or NaN when FP or MISS
+                ]
+            ),
+            index=idx,
         )
-        return df
 
     @property
     def events(self):
@@ -125,7 +131,4 @@ class MOTAccumulatorCustom(motmetrics.mot.MOTAccumulator):
             r = pd.concat((r, copy))
             mapping_infos.append(infos)
 
-        if return_mappings:
-            return r, mapping_infos
-        else:
-            return r
+        return (r, mapping_infos) if return_mappings else r

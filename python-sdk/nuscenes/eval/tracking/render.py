@@ -83,16 +83,18 @@ def recall_metric_curve(cfg: TrackingConfig,
         recalls = recalls[first_valid:]
         values = values[first_valid:]
 
-        ax.plot(recalls,
-                values,
-                label='%s' % cfg.pretty_tracking_names[tracking_name],
-                color=cfg.tracking_colors[tracking_name])
+        ax.plot(
+            recalls,
+            values,
+            label=f'{cfg.pretty_tracking_names[tracking_name]}',
+            color=cfg.tracking_colors[tracking_name],
+        )
 
     # Scale count statistics and FAF logarithmically.
-    if metric_name in ['mt', 'ml', 'faf', 'tp', 'fp', 'fn', 'ids', 'frag']:
+    if metric_name in {'mt', 'ml', 'faf', 'tp', 'fp', 'fn', 'ids', 'frag'}:
         ax.set_yscale('symlog')
 
-    if metric_name in ['amota', 'motar', 'recall', 'mota']:
+    if metric_name in {'amota', 'motar', 'recall', 'mota'}:
         # Some metrics have an upper bound of 1.
         ax.set_ylim(0, 1)
     elif metric_name != 'motp':
@@ -117,8 +119,7 @@ class TrackingRenderer:
         self.save_path = save_path
         self.id2color = {}  # The color of each track.
 
-    def render(self, events: DataFrame, timestamp: int, frame_gt: List[TrackingBox], frame_pred: List[TrackingBox]) \
-            -> None:
+    def render(self, events: DataFrame, timestamp: int, frame_gt: List[TrackingBox], frame_pred: List[TrackingBox]) -> None:
         """
         Render function for a given scene timestamp
         :param events: motmetrics events for that particular
@@ -127,7 +128,7 @@ class TrackingRenderer:
         :param frame_pred: list of prediction boxes
         """
         # Init.
-        print('Rendering {}'.format(timestamp))
+        print(f'Rendering {timestamp}')
         switches = events[events.Type == 'SWITCH']
         switch_ids = switches.HId.values
         fig, ax = plt.subplots()
@@ -148,12 +149,11 @@ class TrackingRenderer:
                                                 float(hash(b.tracking_id + 'g') % 256) / 255,
                                                 float(hash(b.tracking_id + 'b') % 256) / 255)
 
+            color = self.id2color[b.tracking_id]
             # Render box. Highlight identity switches in red.
             if b.tracking_id in switch_ids:
-                color = self.id2color[b.tracking_id]
                 box.render(ax, view=np.eye(4), colors=('r', 'r', color))
             else:
-                color = self.id2color[b.tracking_id]
                 box.render(ax, view=np.eye(4), colors=(color, color, color))
 
         # Plot ego pose.
@@ -162,5 +162,5 @@ class TrackingRenderer:
         plt.ylim(-50, 50)
 
         # Save to disk and close figure.
-        fig.savefig(os.path.join(self.save_path, '{}.png'.format(timestamp)))
+        fig.savefig(os.path.join(self.save_path, f'{timestamp}.png'))
         plt.close(fig)

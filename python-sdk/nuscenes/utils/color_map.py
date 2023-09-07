@@ -7,12 +7,16 @@ def get_colormap() -> Dict[str, Tuple[int, int, int]]:
     :return: A mapping from the class names to the respective RGB values.
     """
 
-    classname_to_color = {  # RGB.
+    return {  # RGB.
         "noise": (0, 0, 0),  # Black.
         "animal": (70, 130, 180),  # Steelblue
         "human.pedestrian.adult": (0, 0, 230),  # Blue
         "human.pedestrian.child": (135, 206, 235),  # Skyblue,
-        "human.pedestrian.construction_worker": (100, 149, 237),  # Cornflowerblue
+        "human.pedestrian.construction_worker": (
+            100,
+            149,
+            237,
+        ),  # Cornflowerblue
         "human.pedestrian.personal_mobility": (219, 112, 147),  # Palevioletred
         "human.pedestrian.police_officer": (0, 0, 128),  # Navy,
         "human.pedestrian.stroller": (240, 128, 128),  # Lightcoral
@@ -39,7 +43,5 @@ def get_colormap() -> Dict[str, Tuple[int, int, int]]:
         "static.manmade": (222, 184, 135),  # Burlywood
         "static.other": (255, 228, 196),  # Bisque
         "static.vegetation": (0, 175, 0),  # Green
-        "vehicle.ego": (255, 240, 245)
+        "vehicle.ego": (255, 240, 245),
     }
-
-    return classname_to_color

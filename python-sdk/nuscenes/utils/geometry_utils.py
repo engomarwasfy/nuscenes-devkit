@@ -81,7 +81,7 @@ def box_in_image(box, intrinsic: np.ndarray, imsize: Tuple[int, int], vis_level:
     elif vis_level == BoxVisibility.NONE:
         return True
     else:
-        raise ValueError("vis_level: {} not valid".format(vis_level))
+        raise ValueError(f"vis_level: {vis_level} not valid")
 
 
 def transform_matrix(translation: np.ndarray = np.array([0, 0, 0]),
@@ -137,9 +137,7 @@ def points_in_box(box: 'Box', points: np.ndarray, wlh_factor: float = 1.0):
     jv = np.dot(j, v)
     kv = np.dot(k, v)
 
-    mask_x = np.logical_and(0 <= iv, iv <= np.dot(i, i))
-    mask_y = np.logical_and(0 <= jv, jv <= np.dot(j, j))
-    mask_z = np.logical_and(0 <= kv, kv <= np.dot(k, k))
-    mask = np.logical_and(np.logical_and(mask_x, mask_y), mask_z)
-
-    return mask
+    mask_x = np.logical_and(iv >= 0, iv <= np.dot(i, i))
+    mask_y = np.logical_and(jv >= 0, jv <= np.dot(j, j))
+    mask_z = np.logical_and(kv >= 0, kv <= np.dot(k, k))
+    return np.logical_and(np.logical_and(mask_x, mask_y), mask_z)

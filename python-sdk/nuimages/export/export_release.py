@@ -20,14 +20,19 @@ def export_release(dataroot='/data/sets/nuimages', version: str = 'v1.0') -> Non
         os.makedirs(export_dir)
 
     # Determine the images from the mini split.
-    mini_src = os.path.join(dataroot, version + '-mini')
+    mini_src = os.path.join(dataroot, f'{version}-mini')
     with open(os.path.join(mini_src, 'sample_data.json'), 'r') as f:
         sample_data = json.load(f)
     file_names = [sd['filename'] for sd in sample_data]
 
     # Hard-code the mapping from archive names to their relative folder paths.
     archives = {
-        'all-metadata': [version + '-train', version + '-val', version + '-test', version + '-mini'],
+        'all-metadata': [
+            f'{version}-train',
+            f'{version}-val',
+            f'{version}-test',
+            f'{version}-mini',
+        ],
         'all-samples': ['samples'],
         'all-sweeps-cam-back': ['sweeps/CAM_BACK'],
         'all-sweeps-cam-back-left': ['sweeps/CAM_BACK_LEFT'],
@@ -35,16 +40,16 @@ def export_release(dataroot='/data/sets/nuimages', version: str = 'v1.0') -> Non
         'all-sweeps-cam-front': ['sweeps/CAM_FRONT'],
         'all-sweeps-cam-front-left': ['sweeps/CAM_FRONT_LEFT'],
         'all-sweeps-cam-front-right': ['sweeps/CAM_FRONT_RIGHT'],
-        'mini': [version + '-mini'] + file_names
+        'mini': [f'{version}-mini'] + file_names,
     }
 
     # Pack each folder.
     for key, folder_list in archives.items():
-        out_path = os.path.join(export_dir, 'nuimages-%s-%s.tgz' % (version, key))
+        out_path = os.path.join(export_dir, f'nuimages-{version}-{key}.tgz')
         if os.path.exists(out_path):
-            print('Warning: Skipping export for file as it already exists: %s' % out_path)
+            print(f'Warning: Skipping export for file as it already exists: {out_path}')
             continue
-        print('Compressing archive %s...' % out_path)
+        print(f'Compressing archive {out_path}...')
         pack_folder(out_path, dataroot, folder_list)
 
 

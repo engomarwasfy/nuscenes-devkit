@@ -19,7 +19,7 @@ class TestBackBones(unittest.TestCase):
         else:
             raise ValueError("Backbone layer block not supported!")
 
-        return sum([len(model[i]) for i in range(4, 8)]) * n_convs + 2
+        return sum(len(model[i]) for i in range(4, 8)) * n_convs + 2
 
     def test_resnet(self):
 

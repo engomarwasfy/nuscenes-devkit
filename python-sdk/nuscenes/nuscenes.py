@@ -32,7 +32,7 @@ from nuscenes.utils.color_map import get_colormap
 
 PYTHON_VERSION = sys.version_info[0]
 
-if not PYTHON_VERSION == 3:
+if PYTHON_VERSION != 3:
     raise ValueError("nuScenes dev-kit only supports Python version 3.")
 
 
@@ -59,11 +59,13 @@ class NuScenes:
         self.table_names = ['category', 'attribute', 'visibility', 'instance', 'sensor', 'calibrated_sensor',
                             'ego_pose', 'log', 'scene', 'sample', 'sample_data', 'sample_annotation', 'map']
 
-        assert osp.exists(self.table_root), 'Database version not found: {}'.format(self.table_root)
+        assert osp.exists(
+            self.table_root
+        ), f'Database version not found: {self.table_root}'
 
         start_time = time.time()
         if verbose:
-            print("======\nLoading NuScenes tables for version {}...".format(self.version))
+            print(f"======\nLoading NuScenes tables for version {self.version}...")
 
         # Explicitly assign tables to help the IDE determine valid class members.
         self.category = self.__load_table__('category')
@@ -83,10 +85,14 @@ class NuScenes:
         # Initialize the colormap which maps from class names to RGB values.
         self.colormap = get_colormap()
 
-        lidar_tasks = [t for t in ['lidarseg', 'panoptic'] if osp.exists(osp.join(self.table_root, t + '.json'))]
-        if len(lidar_tasks) > 0:
-            self.lidarseg_idx2name_mapping = dict()
-            self.lidarseg_name2idx_mapping = dict()
+        lidar_tasks = [
+            t
+            for t in ['lidarseg', 'panoptic']
+            if osp.exists(osp.join(self.table_root, f'{t}.json'))
+        ]
+        if lidar_tasks:
+            self.lidarseg_idx2name_mapping = {}
+            self.lidarseg_name2idx_mapping = {}
             self.load_lidarseg_cat_name_mapping()
         for i, lidar_task in enumerate(lidar_tasks):
             if self.verbose:
@@ -101,7 +107,7 @@ class NuScenes:
             num_label_files = len([name for name in label_files if (name.endswith('.bin') or name.endswith('.npz'))])
             num_lidarseg_recs = len(getattr(self, lidar_task))
             assert num_lidarseg_recs == num_label_files, \
-                f'Error: there are {num_label_files} label files but {num_lidarseg_recs} {lidar_task} records.'
+                    f'Error: there are {num_label_files} label files but {num_lidarseg_recs} {lidar_task} records.'
             self.table_names.append(lidar_task)
             # Sort the colormap to ensure that it is ordered according to the indices in self.category.
             self.colormap = dict({c['name']: self.colormap[c['name']]
@@ -117,7 +123,7 @@ class NuScenes:
 
         if verbose:
             for table in self.table_names:
-                print("{} {},".format(len(getattr(self, table)), table))
+                print(f"{len(getattr(self, table))} {table},")
             print("Done loading in {:.3f} seconds.\n======".format(time.time() - start_time))
 
         # Make reverse indexes for common lookups.
@@ -133,7 +139,7 @@ class NuScenes:
 
     def __load_table__(self, table_name) -> dict:
         """ Loads a table. """
-        with open(osp.join(self.table_root, '{}.json'.format(table_name))) as f:
+        with open(osp.join(self.table_root, f'{table_name}.json')) as f:
             table = json.load(f)
         return table
 
@@ -158,9 +164,9 @@ class NuScenes:
             print("Reverse indexing ...")
 
         # Store the mapping from token to table index for each table.
-        self._token2ind = dict()
+        self._token2ind = {}
         for table in self.table_names:
-            self._token2ind[table] = dict()
+            self._token2ind[table] = {}
 
             for ind, member in enumerate(getattr(self, table)):
                 self._token2ind[table][member['token']] = ind
@@ -194,7 +200,7 @@ class NuScenes:
         # Add reverse indices from log records to map records.
         if 'log_tokens' not in self.map[0].keys():
             raise Exception('Error: log_tokens not in map table. This code is not compatible with the teaser dataset.')
-        log_to_map = dict()
+        log_to_map = {}
         for map_record in self.map:
             for log_token in map_record['log_tokens']:
                 log_to_map[log_token] = map_record['token']
@@ -211,7 +217,7 @@ class NuScenes:
         :param token: Token of the record.
         :return: Table record. See README.md for record details for each table.
         """
-        assert table_name in self.table_names, "Table {} not found".format(table_name)
+        assert table_name in self.table_names, f"Table {table_name} not found"
 
         return getattr(self, table_name)[self.getind(table_name, token)]
 
@@ -233,11 +239,11 @@ class NuScenes:
         :param query: Query to match against. Needs to type match the content of the query field.
         :return: List of tokens for the matching records.
         """
-        matches = []
-        for member in getattr(self, table_name):
-            if member[field] == query:
-                matches.append(member['token'])
-        return matches
+        return [
+            member['token']
+            for member in getattr(self, table_name)
+            if member[field] == query
+        ]
 
     def get_sample_data_path(self, sample_data_token: str) -> str:
         """ Returns the path to a sample_data. """
@@ -393,16 +399,8 @@ class NuScenes:
         if not has_prev and not has_next:
             return np.array([np.nan, np.nan, np.nan])
 
-        if has_prev:
-            first = self.get('sample_annotation', current['prev'])
-        else:
-            first = current
-
-        if has_next:
-            last = self.get('sample_annotation', current['next'])
-        else:
-            last = current
-
+        first = self.get('sample_annotation', current['prev']) if has_prev else current
+        last = self.get('sample_annotation', current['next']) if has_next else current
         pos_last = np.array(last['translation'])
         pos_first = np.array(first['translation'])
         pos_diff = pos_last - pos_first
@@ -438,11 +436,16 @@ class NuScenes:
                                         predictions for the sample.
         :param gt_from: 'lidarseg' or 'panoptic', ground truth source of point semantic labels.
         """
-        assert gt_from in ['lidarseg', 'panoptic'], f'gt_from can only be lidarseg or panoptic, get {gt_from}'
+        assert gt_from in {
+            'lidarseg',
+            'panoptic',
+        }, f'gt_from can only be lidarseg or panoptic, get {gt_from}'
         assert hasattr(self, gt_from), f'Error: You have no {gt_from} data; unable to get ' \
-                                       'statistics for segmentation of the point cloud.'
-        assert sort_by in ['count', 'name', 'index'], 'Error: sort_by can only be one of the following: ' \
-                                                      'count / name / index.'
+                                           'statistics for segmentation of the point cloud.'
+        assert sort_by in {'count', 'name', 'index'}, (
+            'Error: sort_by can only be one of the following: '
+            'count / name / index.'
+        )
         semantic_table = getattr(self, gt_from)
         sample_rec = self.get('sample', sample_token)
         ref_sd_token = sample_rec['data']['LIDAR_TOP']
@@ -450,25 +453,24 @@ class NuScenes:
 
         # Ensure that lidar pointcloud is from a keyframe.
         assert ref_sd_record['is_key_frame'], 'Error: Only pointclouds which are keyframes have ' \
-                                              'lidar segmentation labels. Rendering aborted.'
+                                                  'lidar segmentation labels. Rendering aborted.'
 
         if lidarseg_preds_bin_path:
             lidarseg_labels_filename = lidarseg_preds_bin_path
-            assert os.path.exists(lidarseg_labels_filename), \
-                'Error: Unable to find {} to load the predictions for sample token {} ' \
-                '(lidar sample data token {}) from.'.format(lidarseg_labels_filename, sample_token, ref_sd_token)
+            assert os.path.exists(
+                lidarseg_labels_filename
+            ), f'Error: Unable to find {lidarseg_labels_filename} to load the predictions for sample token {sample_token} (lidar sample data token {ref_sd_token}) from.'
 
-            header = '===== Statistics for ' + sample_token + ' (predictions) ====='
+            header = f'===== Statistics for {sample_token} (predictions) ====='
         else:
-            assert len(semantic_table) > 0, 'Error: There are no ground truth labels found for nuScenes-{} for {}.'\
-                                            'Are you loading the test set? \nIf you want to see the sample statistics'\
-                                            ' for your predictions, pass a path to the appropriate .bin/npz file using'\
-                                            ' the lidarseg_preds_bin_path argument.'.format(gt_from, self.version)
+            assert (
+                len(semantic_table) > 0
+            ), f'Error: There are no ground truth labels found for nuScenes-{gt_from} for {self.version}.Are you loading the test set? \nIf you want to see the sample statistics for your predictions, pass a path to the appropriate .bin/npz file using the lidarseg_preds_bin_path argument.'
             lidar_sd_token = self.get('sample', sample_token)['data']['LIDAR_TOP']
             lidarseg_labels_filename = os.path.join(self.dataroot,
                                                     self.get(gt_from, lidar_sd_token)['filename'])
 
-            header = '===== Statistics for ' + sample_token + ' ====='
+            header = f'===== Statistics for {sample_token} ====='
         print(header)
 
         points_label = load_bin_file(lidarseg_labels_filename, type=gt_from)
@@ -476,10 +478,10 @@ class NuScenes:
             points_label = panoptic_to_lidarseg(points_label)
         lidarseg_counts = get_stats(points_label, len(self.lidarseg_idx2name_mapping))
 
-        lidarseg_counts_dict = dict()
-        for i in range(len(lidarseg_counts)):
-            lidarseg_counts_dict[self.lidarseg_idx2name_mapping[i]] = lidarseg_counts[i]
-
+        lidarseg_counts_dict = {
+            self.lidarseg_idx2name_mapping[i]: lidarseg_counts[i]
+            for i in range(len(lidarseg_counts))
+        }
         if sort_by == 'count':
             out = sorted(lidarseg_counts_dict.items(), key=lambda item: item[1])
         elif sort_by == 'name':
@@ -650,10 +652,10 @@ class NuScenesExplorer:
 
     def list_categories(self) -> None:
         """ Print categories, counts and stats. These stats only cover the split specified in nusc.version. """
-        print('Category stats for split %s:' % self.nusc.version)
+        print(f'Category stats for split {self.nusc.version}:')
 
         # Add all annotations.
-        categories = dict()
+        categories = {}
         for record in self.nusc.sample_annotation:
             if record['category_name'] not in categories:
                 categories[record['category_name']] = []
@@ -679,10 +681,15 @@ class NuScenesExplorer:
                         class index.
         :param gt_from: 'lidarseg' or 'panoptic', ground truth source of point semantic labels.
         """
-        assert gt_from in ['lidarseg', 'panoptic'], f'gt_from can only be lidarseg or panoptic, get {gt_from}'
+        assert gt_from in {
+            'lidarseg',
+            'panoptic',
+        }, f'gt_from can only be lidarseg or panoptic, get {gt_from}'
         assert hasattr(self.nusc, gt_from), f'Error: nuScenes-{gt_from} not installed!'
-        assert sort_by in ['count', 'name', 'index'], 'Error: sort_by can only be one of the following: ' \
-                                                      'count / name / index.'
+        assert sort_by in {'count', 'name', 'index'}, (
+            'Error: sort_by can only be one of the following: '
+            'count / name / index.'
+        )
 
         print(f'Calculating semantic point stats for nuScenes-{gt_from}...')
         semantic_table = getattr(self.nusc, gt_from)
@@ -702,10 +709,10 @@ class NuScenesExplorer:
             for class_idx, class_count in zip(ii, indices[ii]):
                 lidarseg_counts[class_idx] += class_count
 
-        lidarseg_counts_dict = dict()
-        for i in range(len(lidarseg_counts)):
-            lidarseg_counts_dict[self.nusc.lidarseg_idx2name_mapping[i]] = lidarseg_counts[i]
-
+        lidarseg_counts_dict = {
+            self.nusc.lidarseg_idx2name_mapping[i]: lidarseg_counts[i]
+            for i in range(len(lidarseg_counts))
+        }
         if sort_by == 'count':
             out = sorted(lidarseg_counts_dict.items(), key=lambda item: item[1])
         elif sort_by == 'name':
@@ -733,16 +740,20 @@ class NuScenesExplorer:
         :param get_hist: True to return each frame' instance counts and per-category instance' number of frames, and
             number of points.
         """
-        assert hasattr(self.nusc, 'panoptic'), f'Error: nuScenes-panoptic not installed!'
-        assert sort_by in ['count', 'name', 'index'], 'Error: sort_by can only be one of the following: ' \
-                                                      'count / name / index.'
+        assert hasattr(
+            self.nusc, 'panoptic'
+        ), 'Error: nuScenes-panoptic not installed!'
+        assert sort_by in {'count', 'name', 'index'}, (
+            'Error: sort_by can only be one of the following: '
+            'count / name / index.'
+        )
         nusc_panoptic = getattr(self.nusc, 'panoptic')
 
-        print(f'Calculating instance stats for nuScenes-panoptic ...')
+        print('Calculating instance stats for nuScenes-panoptic ...')
         start_time = time.time()
 
         # {scene_token: np.ndarray((n, 5), np.int32)}, each row: (scene_id, frame_id, category_id, inst_id, num_points).
-        scene_inst_stats = dict()
+        scene_inst_stats = {}
         for frame_id, record_panoptic in enumerate(nusc_panoptic):
             panoptic_label_filename = osp.join(self.nusc.dataroot, record_panoptic['filename'])
             panoptic_label = load_bin_file(panoptic_label_filename, type='panoptic')
@@ -778,7 +789,7 @@ class NuScenesExplorer:
 
     def list_attributes(self) -> None:
         """ Prints attributes and counts. """
-        attribute_counts = dict()
+        attribute_counts = {}
         for record in self.nusc.sample_annotation:
             for attribute_token in record['attribute_tokens']:
                 att_name = self.nusc.get('attribute', attribute_token)['name']
@@ -787,7 +798,7 @@ class NuScenesExplorer:
                 attribute_counts[att_name] += 1
 
         for name, count in sorted(attribute_counts.items()):
-            print('{}: {}'.format(name, count))
+            print(f'{name}: {count}')
 
     def list_scenes(self) -> None:
         """ Lists all scenes with some meta data. """
@@ -795,7 +806,7 @@ class NuScenesExplorer:
         def ann_count(record):
             count = 0
             sample = self.nusc.get('sample', record['first_sample_token'])
-            while not sample['next'] == "":
+            while sample['next'] != "":
                 count += len(sample['anns'])
                 sample = self.nusc.get('sample', sample['next'])
             return count
@@ -809,7 +820,7 @@ class NuScenesExplorer:
             location = self.nusc.get('log', record['log_token'])['location']
             desc = record['name'] + ', ' + record['description']
             if len(desc) > 55:
-                desc = desc[:51] + "..."
+                desc = f"{desc[:51]}..."
             if len(location) > 18:
                 location = location[:18]
 
@@ -821,15 +832,18 @@ class NuScenesExplorer:
         """ Prints sample_data tokens and sample_annotation tokens related to the sample_token. """
 
         sample_record = self.nusc.get('sample', sample_token)
-        print('Sample: {}\n'.format(sample_record['token']))
+        print(f"Sample: {sample_record['token']}\n")
         for sd_token in sample_record['data'].values():
             sd_record = self.nusc.get('sample_data', sd_token)
-            print('sample_data_token: {}, mod: {}, channel: {}'.format(sd_token, sd_record['sensor_modality'],
-                                                                       sd_record['channel']))
+            print(
+                f"sample_data_token: {sd_token}, mod: {sd_record['sensor_modality']}, channel: {sd_record['channel']}"
+            )
         print('')
         for ann_token in sample_record['anns']:
             ann_record = self.nusc.get('sample_annotation', ann_token)
-            print('sample_annotation_token: {}, category: {}'.format(ann_record['token'], ann_record['category_name']))
+            print(
+                f"sample_annotation_token: {ann_record['token']}, category: {ann_record['category_name']}"
+            )
 
     def map_pointcloud_to_image(self,
                                 pointsensor_token: str,
@@ -868,10 +882,10 @@ class NuScenesExplorer:
 
                 # Ensure that lidar pointcloud is from a keyframe.
                 assert pointsensor['is_key_frame'], \
-                    'Error: Only pointclouds which are keyframes have lidar segmentation labels. Rendering aborted.'
+                        'Error: Only pointclouds which are keyframes have lidar segmentation labels. Rendering aborted.'
 
                 assert not render_intensity, 'Error: Invalid options selected. You can only select either ' \
-                                             'render_intensity or show_lidarseg, not both.'
+                                                 'render_intensity or show_lidarseg, not both.'
 
             pc = LidarPointCloud.from_file(pcl_path)
         else:
@@ -905,7 +919,7 @@ class NuScenesExplorer:
 
         if render_intensity:
             assert pointsensor['sensor_modality'] == 'lidar', 'Error: Can only render intensity for lidar, ' \
-                                                              'not %s!' % pointsensor['sensor_modality']
+                                                                  'not %s!' % pointsensor['sensor_modality']
             # Retrieve the color from the intensities.
             # Performs arbitary scaling to achieve more visually pleasing results.
             intensities = pc.points[3, :]
@@ -915,7 +929,7 @@ class NuScenesExplorer:
             coloring = intensities
         elif show_lidarseg or show_panoptic:
             assert pointsensor['sensor_modality'] == 'lidar', 'Error: Can only render lidarseg labels for lidar, ' \
-                                                              'not %s!' % pointsensor['sensor_modality']
+                                                                  'not %s!' % pointsensor['sensor_modality']
 
             gt_from = 'lidarseg' if show_lidarseg else 'panoptic'
             semantic_table = getattr(self.nusc, gt_from)
@@ -923,15 +937,14 @@ class NuScenesExplorer:
             if lidarseg_preds_bin_path:
                 sample_token = self.nusc.get('sample_data', pointsensor_token)['sample_token']
                 lidarseg_labels_filename = lidarseg_preds_bin_path
-                assert os.path.exists(lidarseg_labels_filename), \
-                    'Error: Unable to find {} to load the predictions for sample token {} (lidar ' \
-                    'sample data token {}) from.'.format(lidarseg_labels_filename, sample_token, pointsensor_token)
+                assert os.path.exists(
+                    lidarseg_labels_filename
+                ), f'Error: Unable to find {lidarseg_labels_filename} to load the predictions for sample token {sample_token} (lidar sample data token {pointsensor_token}) from.'
+            elif len(semantic_table) > 0:  # Ensure {lidarseg/panoptic}.json is not empty (e.g. in case of v1.0-test).
+                lidarseg_labels_filename = osp.join(self.nusc.dataroot,
+                                                    self.nusc.get(gt_from, pointsensor_token)['filename'])
             else:
-                if len(semantic_table) > 0:  # Ensure {lidarseg/panoptic}.json is not empty (e.g. in case of v1.0-test).
-                    lidarseg_labels_filename = osp.join(self.nusc.dataroot,
-                                                        self.nusc.get(gt_from, pointsensor_token)['filename'])
-                else:
-                    lidarseg_labels_filename = None
+                lidarseg_labels_filename = None
 
             if lidarseg_labels_filename:
                 # Paint each label in the pointcloud with a RGBA value.
@@ -1023,7 +1036,7 @@ class NuScenesExplorer:
         if ax is None:
             fig, ax = plt.subplots(1, 1, figsize=(9, 16))
             if lidarseg_preds_bin_path:
-                fig.canvas.set_window_title(sample_token + '(predictions)')
+                fig.canvas.set_window_title(f'{sample_token}(predictions)')
             else:
                 fig.canvas.set_window_title(sample_token)
         else:  # Set title on if rendering as part of render_sample.

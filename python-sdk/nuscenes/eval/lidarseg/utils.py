@@ -40,10 +40,12 @@ class ConfusionMatrix:
         :param pred_array: An array containing the predicted labels.
         :return: N x N array where N is the number of classes.
         """
-        assert all((gt_array >= 0) & (gt_array < self.num_classes)), \
-            "Error: Array for ground truth must be between 0 and {} (inclusive).".format(self.num_classes - 1)
-        assert all((pred_array > 0) & (pred_array < self.num_classes)), \
-            "Error: Array for predictions must be between 1 and {} (inclusive).".format(self.num_classes - 1)
+        assert all(
+            (gt_array >= 0) & (gt_array < self.num_classes)
+        ), f"Error: Array for ground truth must be between 0 and {self.num_classes - 1} (inclusive)."
+        assert all(
+            (pred_array > 0) & (pred_array < self.num_classes)
+        ), f"Error: Array for predictions must be between 1 and {self.num_classes - 1} (inclusive)."
 
         label = self.num_classes * gt_array.astype('int') + pred_array
         count = np.bincount(label, minlength=self.num_classes ** 2)
@@ -89,8 +91,7 @@ class ConfusionMatrix:
         :return: mIOU over the classes.
         """
         iou_per_class = self.get_per_class_iou()
-        miou = float(np.nanmean(iou_per_class))
-        return miou
+        return float(np.nanmean(iou_per_class))
 
     def get_freqweighted_iou(self) -> float:
         """
@@ -108,10 +109,9 @@ class ConfusionMatrix:
         # Get the IOU per class.
         iou_per_class = self.get_per_class_iou()
 
-        # Weight the IOU by frequency and sum across the classes.
-        freqweighted_iou = float(np.nansum(num_points_per_class * iou_per_class) / num_points_total)
-
-        return freqweighted_iou
+        return float(
+            np.nansum(num_points_per_class * iou_per_class) / num_points_total
+        )
 
 
 class LidarsegClassMapper:
@@ -237,22 +237,23 @@ class LidarsegClassMapper:
         :return: A dictionary containing the mapping from the the indices of the coarse classes to that of the
                  coarse classes.
         """
-        fine_idx_2_coarse_idx_mapping = dict()
-        for fine_name, fine_idx in self.nusc.lidarseg_name2idx_mapping.items():
-            fine_idx_2_coarse_idx_mapping[fine_idx] = self.coarse_name_2_coarse_idx_mapping[
-                self.fine_name_2_coarse_name_mapping[fine_name]]
-        return fine_idx_2_coarse_idx_mapping
+        return {
+            fine_idx: self.coarse_name_2_coarse_idx_mapping[
+                self.fine_name_2_coarse_name_mapping[fine_name]
+            ]
+            for fine_name, fine_idx in self.nusc.lidarseg_name2idx_mapping.items()
+        }
 
     def check_mapping(self) -> None:
         """
         Convenient method to check that the mappings for fine2coarse and coarse2idx are synced.
         """
-        coarse_set = set()
-        for fine_name, coarse_name in self.fine_name_2_coarse_name_mapping.items():
-            coarse_set.add(coarse_name)
-
+        coarse_set = {
+            coarse_name
+            for fine_name, coarse_name in self.fine_name_2_coarse_name_mapping.items()
+        }
         assert coarse_set == set(self.coarse_name_2_coarse_idx_mapping.keys()), \
-            'Error: Number of coarse classes is not the same as the number of coarse indices.'
+                'Error: Number of coarse classes is not the same as the number of coarse indices.'
 
     def convert_label(self, points_label: np.ndarray) -> np.ndarray:
         """
@@ -286,9 +287,7 @@ class LidarsegClassMapper:
         for i, count in enumerate(counter_before):  # Note that the class labels are 0-indexed.
             counter_check[self.fine_idx_2_coarse_idx_mapping[i]] += count
 
-        comparison = counter_check == counter_after
-
-        return comparison
+        return counter_check == counter_after
 
     def get_stats(self, points_label: np.array) -> List[int]:
         """
@@ -320,11 +319,7 @@ def get_samples_in_eval_set(nusc: NuScenes, eval_set: str) -> List[str]:
     :param eval_set: The dataset split to evaluate on, e.g. train, val or test.
     :return: A list of sample tokens.
     """
-    # Create a dict to map from scene name to scene token for quick lookup later on.
-    scene_name2tok = dict()
-    for rec in nusc.scene:
-        scene_name2tok[rec['name']] = rec['token']
-
+    scene_name2tok = {rec['name']: rec['token'] for rec in nusc.scene}
     # Get scenes splits from nuScenes.
     scenes_splits = create_splits_scenes(verbose=False)
 
@@ -348,7 +343,8 @@ def get_samples_in_eval_set(nusc: NuScenes, eval_set: str) -> List[str]:
                 sample_token = sample_record['next']
             i += 1
 
-        assert total_num_samples == i, 'Error: There were supposed to be {} keyframes, ' \
-                                       'but only {} keyframes were processed'.format(total_num_samples, i)
+        assert (
+            total_num_samples == i
+        ), f'Error: There were supposed to be {total_num_samples} keyframes, but only {i} keyframes were processed'
 
     return samples

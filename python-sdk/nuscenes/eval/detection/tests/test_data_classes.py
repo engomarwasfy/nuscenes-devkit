@@ -18,7 +18,7 @@ class TestDetectionConfig(unittest.TestCase):
 
         this_dir = os.path.dirname(os.path.abspath(__file__))
         cfg_name = 'detection_cvpr_2019'
-        config_path = os.path.join(this_dir, '..', 'configs', cfg_name + '.json')
+        config_path = os.path.join(this_dir, '..', 'configs', f'{cfg_name}.json')
 
         with open(config_path) as f:
             cfg = json.load(f)
@@ -66,7 +66,7 @@ class TestDetectionMetricDataList(unittest.TestCase):
     def test_serialization(self):
         """ Test that instance serialization protocol works with json encoding. """
         mdl = DetectionMetricDataList()
-        for i in range(10):
+        for _ in range(10):
             mdl.set('name', 0.1, DetectionMetricData.random_md())
         recovered = DetectionMetricDataList.deserialize(json.loads(json.dumps(mdl.serialize())))
         self.assertEqual(mdl, recovered)

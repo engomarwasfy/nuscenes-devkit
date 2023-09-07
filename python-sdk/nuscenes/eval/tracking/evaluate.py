@@ -143,11 +143,7 @@ class TrackingEval:
             # Find best MOTA to determine threshold to pick for traditional metrics.
             # If multiple thresholds have the same value, pick the one with the highest recall.
             md = metric_data_list[class_name]
-            if np.all(np.isnan(md.mota)):
-                best_thresh_idx = None
-            else:
-                best_thresh_idx = np.nanargmax(md.mota)
-
+            best_thresh_idx = None if np.all(np.isnan(md.mota)) else np.nanargmax(md.mota)
             # Pick best value for traditional metrics.
             if best_thresh_idx is not None:
                 for metric_name in MOT_METRIC_MAP.values():
@@ -185,14 +181,16 @@ class TrackingEval:
             print('Rendering curves')
 
         def savepath(name):
-            return os.path.join(self.plot_dir, name + '.pdf')
+            return os.path.join(self.plot_dir, f'{name}.pdf')
 
         # Plot a summary.
         summary_plot(self.cfg, md_list, savepath=savepath('summary'))
 
         # For each metric, plot all the classes in one diagram.
         for metric_name in LEGACY_METRICS:
-            recall_metric_curve(self.cfg, md_list, metric_name, savepath=savepath('%s' % metric_name))
+            recall_metric_curve(
+                self.cfg, md_list, metric_name, savepath=savepath(f'{metric_name}')
+            )
 
     def main(self, render_curves: bool = True) -> Dict[str, Any]:
         """
@@ -205,7 +203,7 @@ class TrackingEval:
 
         # Dump the metric data, meta and metrics to disk.
         if self.verbose:
-            print('Saving metrics to: %s' % self.output_dir)
+            print(f'Saving metrics to: {self.output_dir}')
         metrics_summary = metrics.serialize()
         metrics_summary['meta'] = self.meta.copy()
         with open(os.path.join(self.output_dir, 'metrics_summary.json'), 'w') as f:

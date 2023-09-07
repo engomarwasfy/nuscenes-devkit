@@ -79,13 +79,12 @@ def colormap_to_colors(colormap: Dict[str, Iterable[int]], name2idx: Dict[str, i
     colors = []
     for i, (k, v) in enumerate(colormap.items()):
         # Ensure that the indices from the colormap is same as the class indices.
-        assert i == name2idx[k], 'Error: {} is of index {}, ' \
-                                 'but it is of index {} in the colormap.'.format(k, name2idx[k], i)
+        assert (
+            i == name2idx[k]
+        ), f'Error: {k} is of index {name2idx[k]}, but it is of index {i} in the colormap.'
         colors.append(v)
 
-    colors = np.array(colors) / 255  # Normalize RGB values to be between 0 and 1 for each channel.
-
-    return colors
+    return np.array(colors) / 255
 
 
 def filter_colors(colors: np.array, classes_to_display: np.array) -> np.ndarray:
@@ -136,7 +135,7 @@ def get_labels_in_coloring(color_legend: np.ndarray, coloring: np.ndarray) -> Li
 
     # Get only the distinct colors present in the pointcloud so that we will not need to compare each color in
     # the color legend with every single point in the pointcloud later.
-    distinct_colors = list(set(tuple(c) for c in coloring))
+    distinct_colors = list({tuple(c) for c in coloring})
 
     for i, color in enumerate(color_legend):
         if _array_in_list(color, distinct_colors):
@@ -212,15 +211,12 @@ def paint_points_label(lidarseg_labels_filename: str, filter_lidarseg_labels: Li
             'Error: filter_lidarseg_labels should be a list of class indices, eg. [9], [10, 21].'
 
         # Check that class indices in filter_lidarseg_labels are valid.
-        assert all([0 <= x < len(name2idx) for x in filter_lidarseg_labels]), \
-            'All class indices in filter_lidarseg_labels should ' \
-            'be between 0 and {}'.format(len(name2idx) - 1)
+        assert all(
+            0 <= x < len(name2idx) for x in filter_lidarseg_labels
+        ), f'All class indices in filter_lidarseg_labels should be between 0 and {len(name2idx) - 1}'
 
         # Filter to get only the colors of the desired classes; this is done by setting the
         # alpha channel of the classes to be viewed to 1, and the rest to 0.
         colors = filter_colors(colors, filter_lidarseg_labels)  # Shape: [num_class, 4]
 
-    # Paint each label with its respective RGBA value.
-    coloring = colors[points_label]  # Shape: [num_points, 4]
-
-    return coloring
+    return colors[points_label]

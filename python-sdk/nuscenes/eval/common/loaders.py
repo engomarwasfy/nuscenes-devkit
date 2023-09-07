@@ -18,8 +18,7 @@ from nuscenes.utils.geometry_utils import points_in_box
 from nuscenes.utils.splits import create_splits_scenes
 
 
-def load_prediction(result_path: str, max_boxes_per_sample: int, box_cls, verbose: bool = False) \
-        -> Tuple[EvalBoxes, Dict]:
+def load_prediction(result_path: str, max_boxes_per_sample: int, box_cls, verbose: bool = False) -> Tuple[EvalBoxes, Dict]:
     """
     Loads object predictions from file.
     :param result_path: Path to the .json result file provided by the user.
@@ -39,8 +38,9 @@ def load_prediction(result_path: str, max_boxes_per_sample: int, box_cls, verbos
     all_results = EvalBoxes.deserialize(data['results'], box_cls)
     meta = data['meta']
     if verbose:
-        print("Loaded results from {}. Found detections for {} samples."
-              .format(result_path, len(all_results.sample_tokens)))
+        print(
+            f"Loaded results from {result_path}. Found detections for {len(all_results.sample_tokens)} samples."
+        )
 
     # Check that each sample has no more than x predicted boxes.
     for sample_token in all_results.sample_tokens:
@@ -64,10 +64,12 @@ def load_gt(nusc: NuScenes, eval_split: str, box_cls, verbose: bool = False) -> 
         attribute_map = {a['token']: a['name'] for a in nusc.attribute}
 
     if verbose:
-        print('Loading annotations for {} split from nuScenes version: {}'.format(eval_split, nusc.version))
+        print(
+            f'Loading annotations for {eval_split} split from nuScenes version: {nusc.version}'
+        )
     # Read out all sample_tokens in DB.
     sample_tokens_all = [s['token'] for s in nusc.sample]
-    assert len(sample_tokens_all) > 0, "Error: Database has no samples!"
+    assert sample_tokens_all, "Error: Database has no samples!"
 
     # Only keep samples from this split.
     splits = create_splits_scenes()
@@ -75,17 +77,21 @@ def load_gt(nusc: NuScenes, eval_split: str, box_cls, verbose: bool = False) -> 
     # Check compatibility of split with nusc_version.
     version = nusc.version
     if eval_split in {'train', 'val', 'train_detect', 'train_track'}:
-        assert version.endswith('trainval'), \
-            'Error: Requested split {} which is not compatible with NuScenes version {}'.format(eval_split, version)
+        assert version.endswith(
+            'trainval'
+        ), f'Error: Requested split {eval_split} which is not compatible with NuScenes version {version}'
     elif eval_split in {'mini_train', 'mini_val'}:
-        assert version.endswith('mini'), \
-            'Error: Requested split {} which is not compatible with NuScenes version {}'.format(eval_split, version)
+        assert version.endswith(
+            'mini'
+        ), f'Error: Requested split {eval_split} which is not compatible with NuScenes version {version}'
     elif eval_split == 'test':
-        assert version.endswith('test'), \
-            'Error: Requested split {} which is not compatible with NuScenes version {}'.format(eval_split, version)
+        assert version.endswith(
+            'test'
+        ), f'Error: Requested split {eval_split} which is not compatible with NuScenes version {version}'
     else:
-        raise ValueError('Error: Requested split {} which this function cannot map to the correct NuScenes version.'
-                         .format(eval_split))
+        raise ValueError(
+            f'Error: Requested split {eval_split} which this function cannot map to the correct NuScenes version.'
+        )
 
     if eval_split == 'test':
         # Check that you aren't trying to cheat :).
@@ -167,12 +173,14 @@ def load_gt(nusc: NuScenes, eval_split: str, box_cls, verbose: bool = False) -> 
                     )
                 )
             else:
-                raise NotImplementedError('Error: Invalid box_cls %s!' % box_cls)
+                raise NotImplementedError(f'Error: Invalid box_cls {box_cls}!')
 
         all_annotations.add_boxes(sample_token, sample_boxes)
 
     if verbose:
-        print("Loaded ground truth annotations for {} samples.".format(len(all_annotations.sample_tokens)))
+        print(
+            f"Loaded ground truth annotations for {len(all_annotations.sample_tokens)} samples."
+        )
 
     return all_annotations
 
@@ -196,7 +204,7 @@ def add_center_dist(nusc: NuScenes,
             ego_translation = (box.translation[0] - pose_record['translation'][0],
                                box.translation[1] - pose_record['translation'][1],
                                box.translation[2] - pose_record['translation'][2])
-            if isinstance(box, DetectionBox) or isinstance(box, TrackingBox):
+            if isinstance(box, (DetectionBox, TrackingBox)):
                 box.ego_translation = ego_translation
             else:
                 raise NotImplementedError
@@ -229,7 +237,9 @@ def filter_eval_boxes(nusc: NuScenes,
         dist_filter += len(eval_boxes[sample_token])
 
         # Then remove boxes with zero points in them. Eval boxes have -1 points by default.
-        eval_boxes.boxes[sample_token] = [box for box in eval_boxes[sample_token] if not box.num_pts == 0]
+        eval_boxes.boxes[sample_token] = [
+            box for box in eval_boxes[sample_token] if box.num_pts != 0
+        ]
         point_filter += len(eval_boxes[sample_token])
 
         # Perform bike-rack filtering.
@@ -270,16 +280,12 @@ def _get_box_class_field(eval_boxes: EvalBoxes) -> str:
     :return: The name of the class field in the boxes, e.g. detection_name or tracking_name.
     """
     assert len(eval_boxes.boxes) > 0
-    box = None
-    for val in eval_boxes.boxes.values():
-        if len(val) > 0:
-            box = val[0]
-            break
+    box = next((val[0] for val in eval_boxes.boxes.values() if len(val) > 0), None)
     if isinstance(box, DetectionBox):
         class_field = 'detection_name'
     elif isinstance(box, TrackingBox):
         class_field = 'tracking_name'
     else:
-        raise Exception('Error: Invalid box type: %s' % box)
+        raise Exception(f'Error: Invalid box type: {box}')
 
     return class_field

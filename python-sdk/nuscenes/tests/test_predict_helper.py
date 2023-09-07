@@ -25,7 +25,7 @@ class MockNuScenes:
 
     def get(self, table_name: str, token: str) -> Dict[str, Any]:
         assert table_name in {'sample_annotation', 'sample'}
-        return getattr(self, "_" + table_name)[token]
+        return getattr(self, f"_{table_name}")[token]
 
 
 class TestConvertCoords(unittest.TestCase):

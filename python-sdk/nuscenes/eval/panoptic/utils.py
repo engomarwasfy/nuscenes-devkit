@@ -45,9 +45,7 @@ class PanopticClassMapper(LidarsegClassMapper):
         stuff_names = {'driveable_surface', 'other_flat', 'sidewalk', 'terrain', 'manmade', 'vegetation'}
         coarse_name_to_id = self.get_coarse2idx()
         assert stuff_names <= set(coarse_name_to_id.keys()), 'Invalid stuff names, pls check !'
-        stuff_name_to_id = {name: coarse_name_to_id[name] for name in stuff_names}
-
-        return stuff_name_to_id
+        return {name: coarse_name_to_id[name] for name in stuff_names}
 
     def get_things(self) -> Dict[str, int]:
         """
@@ -71,6 +69,4 @@ class PanopticClassMapper(LidarsegClassMapper):
                        'traffic_cone', 'trailer', 'truck'}
         coarse_name_to_id = self.get_coarse2idx()
         assert thing_names <= set(coarse_name_to_id.keys()), 'Invalid thing names, pls check !'
-        thing_name_to_id = {name: coarse_name_to_id[name] for name in thing_names}
-
-        return thing_name_to_id
+        return {name: coarse_name_to_id[name] for name in thing_names}

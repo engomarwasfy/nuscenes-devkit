@@ -44,11 +44,7 @@ def track_initialization_duration(df: DataFrame, obj_frequencies: DataFrame) -> 
         tid += diff * 0.5
 
     matched_tracks = len(obj_frequencies) - missed_tracks
-    if matched_tracks == 0:
-        # Return nan if there are no matches.
-        return np.nan
-    else:
-        return tid / matched_tracks
+    return np.nan if matched_tracks == 0 else tid / matched_tracks
 
 
 def longest_gap_duration(df: DataFrame, obj_frequencies: DataFrame) -> float:
@@ -70,14 +66,11 @@ def longest_gap_duration(df: DataFrame, obj_frequencies: DataFrame) -> float:
         dfo = df.noraw[df.noraw.OId == gt_tracking_id]
         matched = set(dfo[dfo.Type != 'MISS'].index.get_level_values(0).values)
 
-        if len(matched) == 0:
-            # Ignore untracked objects.
-            gap = 0
+        # Ignore untracked objects.
+        gap = 0
+        if not matched:
             missed_tracks += 1
         else:
-            # Find the biggest gap.
-            # Note that we don't need to deal with FPs within the track as the GT is interpolated.
-            gap = 0  # The biggest gap found.
             cur_gap = 0  # Current gap.
             first_index = dfo.index[0][0]
             last_index = dfo.index[-1][0]
@@ -99,12 +92,7 @@ def longest_gap_duration(df: DataFrame, obj_frequencies: DataFrame) -> float:
 
     # Average LGD over the number of tracks.
     matched_tracks = len(obj_frequencies) - missed_tracks
-    if matched_tracks == 0:
-        # Return nan if there are no matches.
-        lgd = np.nan
-    else:
-        lgd = lgd / matched_tracks
-
+    lgd = np.nan if matched_tracks == 0 else lgd / matched_tracks
     return lgd
 
 
@@ -127,12 +115,9 @@ def motar(df: DataFrame, num_matches: int, num_misses: int, num_switches: int, n
     nominator = (num_misses + num_switches + num_false_positives) - (1 - recall) * num_objects
     denominator = recall * num_objects
     if denominator == 0:
-        motar_val = np.nan
-    else:
-        motar_val = 1 - alpha * nominator / denominator
-        motar_val = np.maximum(0, motar_val)
-
-    return motar_val
+        return np.nan
+    motar_val = 1 - alpha * nominator / denominator
+    return np.maximum(0, motar_val)
 
 
 def mota_custom(df: DataFrame, num_misses: int, num_switches: int, num_false_positives: int, num_objects: int) -> float:
@@ -148,8 +133,7 @@ def mota_custom(df: DataFrame, num_misses: int, num_switches: int, num_false_pos
     :return: The MOTA or 0 if below 0.
     """
     mota = 1. - (num_misses + num_switches + num_false_positives) / num_objects
-    mota = np.maximum(0, mota)
-    return mota
+    return np.maximum(0, mota)
 
 
 def motp_custom(df: DataFrame, num_detections: float) -> float:
@@ -162,9 +146,7 @@ def motp_custom(df: DataFrame, num_detections: float) -> float:
     :return: The MOTP or 0 if there are no detections.
     """
     # Note that the default motmetrics function throws a warning when num_detections == 0.
-    if num_detections == 0:
-        return np.nan
-    return df.noraw['D'].sum() / num_detections
+    return np.nan if num_detections == 0 else df.noraw['D'].sum() / num_detections
 
 
 def faf(df: DataFrame, num_false_positives: float, num_frames: float) -> float:

@@ -17,7 +17,7 @@ class TestAllMaps(unittest.TestCase):
     def setUp(self):
         """ Initialize the map for each location. """
 
-        self.nusc_maps = dict()
+        self.nusc_maps = {}
         for map_name in locations:
             # Load map.
             nusc_map = NuScenesMap(map_name=map_name, dataroot=os.environ['NUSCENES'])

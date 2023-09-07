@@ -56,10 +56,11 @@ def _constant_velocity_heading_from_kinematics(kinematics_data: KinematicsData,
     :param sampled_at: Number of predictions to make per second.
     """
     x, y, vx, vy, _, _, _, _, _, _ = kinematics_data
-    preds = []
     time_step = 1.0 / sampled_at
-    for time in np.arange(time_step, sec_from_now + time_step, time_step):
-        preds.append((x + time * vx, y + time * vy))
+    preds = [
+        (x + time * vx, y + time * vy)
+        for time in np.arange(time_step, sec_from_now + time_step, time_step)
+    ]
     return np.array(preds)
 
 
