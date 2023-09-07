@@ -147,7 +147,7 @@ def get_metric_data(gts: Dict[str, List[Dict]],
                     preds: Dict[str, List[Dict]],
                     detection_name: str,
                     dist_th: float) -> DetectionMetricData:
-        """
+    """
         Calculate and check the AP value.
         :param gts: Ground truth data.
         :param preds: Predictions.
@@ -155,38 +155,41 @@ def get_metric_data(gts: Dict[str, List[Dict]],
         :param dist_th: Distance threshold for matching.
         """
 
-        # Some or all of the defaults will be replaced by if given.
-        defaults = {'trans': (0, 0, 0), 'size': (1, 1, 1), 'rot': (0, 0, 0, 0),
-                    'vel': (0, 0), 'attr': 'vehicle.parked', 'score': -1.0, 'name': 'car'}
-        # Create GT EvalBoxes instance.
-        gt_eval_boxes = EvalBoxes()
-        for sample_token, data in gts.items():
-            gt_boxes = []
-            for gt in data:
-                gt = {**defaults, **gt}  # The defaults will be replaced by gt if given.
-                eb = DetectionBox(sample_token=sample_token, translation=gt['trans'], size=gt['size'],
-                                  rotation=gt['rot'], detection_name=gt['name'], attribute_name=gt['attr'],
-                                  velocity=gt['vel'])
-                gt_boxes.append(eb)
+    # Some or all of the defaults will be replaced by if given.
+    defaults = {'trans': (0, 0, 0), 'size': (1, 1, 1), 'rot': (0, 0, 0, 0),
+                'vel': (0, 0), 'attr': 'vehicle.parked', 'score': -1.0, 'name': 'car'}
+    # Create GT EvalBoxes instance.
+    gt_eval_boxes = EvalBoxes()
+    for sample_token, data in gts.items():
+        gt_boxes = []
+        for gt in data:
+            gt = {**defaults, **gt}  # The defaults will be replaced by gt if given.
+            eb = DetectionBox(sample_token=sample_token, translation=gt['trans'], size=gt['size'],
+                              rotation=gt['rot'], detection_name=gt['name'], attribute_name=gt['attr'],
+                              velocity=gt['vel'])
+            gt_boxes.append(eb)
 
-            gt_eval_boxes.add_boxes(sample_token, gt_boxes)
+        gt_eval_boxes.add_boxes(sample_token, gt_boxes)
 
-        # Create Predictions EvalBoxes instance.
-        pred_eval_boxes = EvalBoxes()
-        for sample_token, data in preds.items():
-            pred_boxes = []
-            for pred in data:
-                pred = {**defaults, **pred}
-                eb = DetectionBox(sample_token=sample_token, translation=pred['trans'], size=pred['size'],
-                                  rotation=pred['rot'], detection_name=pred['name'], detection_score=pred['score'],
-                                  velocity=pred['vel'], attribute_name=pred['attr'])
-                pred_boxes.append(eb)
-            pred_eval_boxes.add_boxes(sample_token, pred_boxes)
+    # Create Predictions EvalBoxes instance.
+    pred_eval_boxes = EvalBoxes()
+    for sample_token, data in preds.items():
+        pred_boxes = []
+        for pred in data:
+            pred = {**defaults, **pred}
+            eb = DetectionBox(sample_token=sample_token, translation=pred['trans'], size=pred['size'],
+                              rotation=pred['rot'], detection_name=pred['name'], detection_score=pred['score'],
+                              velocity=pred['vel'], attribute_name=pred['attr'])
+            pred_boxes.append(eb)
+        pred_eval_boxes.add_boxes(sample_token, pred_boxes)
 
-        metric_data = accumulate(gt_eval_boxes, pred_eval_boxes, class_name=detection_name,
-                                 dist_fcn=center_distance, dist_th=dist_th)
-
-        return metric_data
+    return accumulate(
+        gt_eval_boxes,
+        pred_eval_boxes,
+        class_name=detection_name,
+        dist_fcn=center_distance,
+        dist_th=dist_th,
+    )
 
 
 class TestAPSimple(unittest.TestCase):
@@ -309,7 +312,11 @@ class TestTPSimple(unittest.TestCase):
         metric_data = get_metric_data(gts, preds, detection_name, 2.0)  # Distance threshold for TP metrics is 2.0
         tp_error = calc_tp(metric_data, min_recall=min_recall, metric_name=metric_name)
         # We quantize the error curve into 100 bins to calculate the metric so it is only accurate up to 1%.
-        self.assertGreaterEqual(0.01, abs(tp_error - target_error), msg='Incorrect {} value'.format(metric_name))
+        self.assertGreaterEqual(
+            0.01,
+            abs(tp_error - target_error),
+            msg=f'Incorrect {metric_name} value',
+        )
 
     def test_no_positives(self):
         """ Tests the error if there are no matches. The expected behaviour is to return error of 1.0. """

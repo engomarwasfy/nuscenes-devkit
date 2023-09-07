@@ -84,8 +84,9 @@ def convert_annotation_list_to_dict(annotation_list: List[dict],
         if instance_token in bbox_2d_annotations and sample_token in bbox_2d_annotations[instance_token] \
                 and camera_name in bbox_2d_annotations[instance_token][sample_token]:
             num_dups += 1
-            print('Duplicate instance {}, sample {}, and camera {}'.format(
-                instance_token, sample_token, camera_name))
+            print(
+                f'Duplicate instance {instance_token}, sample {sample_token}, and camera {camera_name}'
+            )
 
         bbox_2d_annotations[instance_token][sample_token][camera_name] = instance
         assert num_dups == 0, 'Error: Number of duplicates (should be zero)!'
@@ -106,8 +107,9 @@ def extract_camera_key_from_filename(filename: str) -> str:
     # Validate the camera name is valid.
     camera_names = ['CAM_BACK', 'CAM_BACK_LEFT', 'CAM_BACK_RIGHT',
                     'CAM_FRONT', 'CAM_FRONT_LEFT', 'CAM_FRONT_RIGHT']
-    assert (camera_name in camera_names), "Invalid camera name: {} from path: {}".format(
-        camera_name, filename)
+    assert (
+        camera_name in camera_names
+    ), f"Invalid camera name: {camera_name} from path: {filename}"
 
     return camera_name
 
@@ -165,11 +167,11 @@ def get_most_visible_camera_annotation(camera_data_dict: dict) -> dict:
             best_visibility = visibility
 
     if not best_camera_token:
-        print('Unable to find any good views for camera data dict: {}'.format(
-            camera_data_dict))
+        print(
+            f'Unable to find any good views for camera data dict: {camera_data_dict}'
+        )
 
-    best_instance_data = camera_data_dict[best_camera_token]
-    return best_instance_data
+    return camera_data_dict[best_camera_token]
 
 
 def get_cropped_image_for_annotation(sample_data_annotation: dict,
@@ -205,8 +207,7 @@ def get_cropped_image_for_annotation(sample_data_annotation: dict,
     im = Image.open(data_path)
     im1 = im.crop(bbox)
     im1 = im1.resize(output_size)
-    np_img = np.asarray(im1)
-    return np_img
+    return np.asarray(im1)
 
 
 def sort_sample_annotations_chronologically(instance_dict: dict) -> List[str]:
@@ -218,14 +219,14 @@ def sort_sample_annotations_chronologically(instance_dict: dict) -> List[str]:
     Uses [sample_token][sample_annotation_token]['best_annotation'] to find the correct sequence.
     """
 
-    # Find the first sample token
-    first_sample_token = None
-
-    for sample_token in instance_dict:
-        if instance_dict[sample_token]['best_annotation']['prev'] == '':
-            first_sample_token = sample_token
-            break
-
+    first_sample_token = next(
+        (
+            sample_token
+            for sample_token, value in instance_dict.items()
+            if value['best_annotation']['prev'] == ''
+        ),
+        None,
+    )
     if first_sample_token is None:
         print("Unable to find a start token")
 
@@ -311,11 +312,11 @@ def main(version: str,
     """
     print('=' * 20)
     print('Generating video sequences:')
-    print('\t* Size: {}'.format(output_size))
-    print('\t* FPS: {}'.format(fps))
-    print('\t* Minimum frame count: {}'.format(minimum_frames))
-    print('\t* Minimum BB area: {}'.format(minimum_bb_area))
-    print('\t* Minimum visibility: {}'.format(visibility))
+    print(f'\t* Size: {output_size}')
+    print(f'\t* FPS: {fps}')
+    print(f'\t* Minimum frame count: {minimum_frames}')
+    print(f'\t* Minimum BB area: {minimum_bb_area}')
+    print(f'\t* Minimum visibility: {visibility}')
 
     # ================================ Load image annotations. ========================================
     image_annotations_file = os.path.join(dataroot, version, 'image_annotations.json')
@@ -330,7 +331,7 @@ def main(version: str,
     # You can use the sample_annotation_token with the nuScenes helper in order to get the sample tokens.
     bbox_2d_annotations = convert_annotation_list_to_dict(
         bbox_2d_annotations_list, categories=object_categories)
-    print('Number of unique vehicle instances: {}'.format(len(bbox_2d_annotations)))
+    print(f'Number of unique vehicle instances: {len(bbox_2d_annotations)}')
     # ==============================================================================================
 
     #  ===== For each instance and each sample annotation, find the best camera sensor to use. ======
@@ -361,7 +362,7 @@ def main(version: str,
     rmtree(output, ignore_errors=True)
     pathlib.Path(output).mkdir(parents=True, exist_ok=True)
 
-    print("Creating videos and storing in '{}'...".format(output))
+    print(f"Creating videos and storing in '{output}'...")
     total_videos = 0
     for instance_token in tqdm(bbox_2d_annotations):
         sample_annotation_tokens = bbox_2d_annotations[instance_token]['sample_annotation_sequence']
@@ -371,8 +372,7 @@ def main(version: str,
 
         # Define codec and file extension.
         file_ext = 'mp4' if codec == 'vp09' else 'avi'
-        video_path = os.path.join(
-            output, '{}.{}'.format(instance_token, file_ext))
+        video_path = os.path.join(output, f'{instance_token}.{file_ext}')
         out = cv2.VideoWriter(
             video_path, cv2.VideoWriter_fourcc(*codec), fps, output_size)
 
@@ -388,8 +388,9 @@ def main(version: str,
 
         total_videos += 1
 
-    print('Created {} videos ({} did not meet requirements).'.format(
-        total_videos, len(bbox_2d_annotations) - total_videos, minimum_frames))
+    print(
+        f'Created {total_videos} videos ({len(bbox_2d_annotations) - total_videos} did not meet requirements).'
+    )
     # ==============================================================================================
     print('=' * 20)
 

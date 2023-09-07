@@ -36,19 +36,27 @@ class LidarSegEvalStratified(LidarSegEval):
         super().__init__(nusc, results_folder, eval_set, verbose)
 
         self.output_dir = output_dir
-        assert os.path.exists(self.output_dir), 'Error: {} does not exist.'.format(self.output_dir)
+        assert os.path.exists(
+            self.output_dir
+        ), f'Error: {self.output_dir} does not exist.'
 
         self.strata_list = strata_list
         # Get the display names for each stratum (e.g. (40, 60) -> '40 to 60'; if the upper bound of a stratum is
         # None (e.g. (40, None)), then the display name will be '40+'.
-        self.strata_names = ['{}m to {}m'.format(stratum[0], stratum[1])
-                             if stratum[1] is not None else str(stratum[0]) + 'm+'
-                             for i, stratum in enumerate(self.strata_list)]
+        self.strata_names = [
+            f'{stratum[0]}m to {stratum[1]}m'
+            if stratum[1] is not None
+            else f'{str(stratum[0])}m+'
+            for stratum in self.strata_list
+        ]
 
         self.ignore_name = self.mapper.ignore_class['name']
 
         # Create a list of confusion matrices, one for each stratum.
-        self.global_cm = [ConfusionMatrix(self.num_classes, self.ignore_idx) for i in range(len(strata_list))]
+        self.global_cm = [
+            ConfusionMatrix(self.num_classes, self.ignore_idx)
+            for _ in range(len(strata_list))
+        ]
 
         # After running the evaluation, a list of dictionaries where each entry corresponds to each stratum and is of
         # the following format:
@@ -70,7 +78,7 @@ class LidarSegEvalStratified(LidarSegEval):
         """ Performs the actual evaluation. Overwrites the `evaluate` method in the LidarSegEval class. """
         for i, stratum in enumerate(self.strata_list):
             if self.verbose:
-                print('Evaluating for stratum {}...'.format(self.strata_names[i]))
+                print(f'Evaluating for stratum {self.strata_names[i]}...')
             for sample_token in tqdm(self.sample_tokens, disable=not self.verbose):
                 sample = self.nusc.get('sample', sample_token)
 
@@ -85,7 +93,12 @@ class LidarSegEvalStratified(LidarSegEval):
                 gt.labels = self.mapper.convert_label(gt.labels)  # Map the labels as necessary.
 
                 # 3. Load the predictions for the point cloud.
-                pred_path = os.path.join(self.results_folder, 'lidarseg', self.eval_set, sd_token + '_lidarseg.bin')
+                pred_path = os.path.join(
+                    self.results_folder,
+                    'lidarseg',
+                    self.eval_set,
+                    f'{sd_token}_lidarseg.bin',
+                )
                 pred = LidarSegPointCloud(pcl_path, pred_path)
 
                 # 4. Filter to get only labels belonging to the stratum.
@@ -163,7 +176,7 @@ class LidarSegEvalStratified(LidarSegEval):
             ax.set_xticklabels(self.strata_names, rotation=45, horizontalalignment='right')
             ax.set_ylabel('IOU', fontsize=3)
             ax.set_ylim(top=1.1)  # Make y-axis slightly higher to accommodate tag.
-            ax.set_title('Distance vs. IOU for {}'.format(cls), fontsize=4)
+            ax.set_title(f'Distance vs. IOU for {cls}', fontsize=4)
             ax.tick_params(axis='both', which='major', labelsize=3)
 
             # Loop to add a tag to each bar.
@@ -263,7 +276,7 @@ def visualize_semantic_differences_bev(nusc: NuScenes,
     gt.labels = mapper.convert_label(gt.labels)  # Map the labels as necessary.
 
     # Load the predictions for the point cloud.
-    preds_path = os.path.join(lidarseg_preds_folder, sd_token + '_lidarseg.bin')
+    preds_path = os.path.join(lidarseg_preds_folder, f'{sd_token}_lidarseg.bin')
     preds = LidarSegPointCloud(pcl_path, preds_path)
 
     # Do not compare points which are ignored.

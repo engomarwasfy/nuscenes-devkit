@@ -46,13 +46,16 @@ class LidarSegEval:
         :param verbose: Whether to print messages during the evaluation.
         """
         # Check there are ground truth annotations.
-        assert len(nusc.lidarseg) > 0, 'Error: No ground truth annotations found in {}.'.format(nusc.version)
+        assert (
+            len(nusc.lidarseg) > 0
+        ), f'Error: No ground truth annotations found in {nusc.version}.'
 
         # Check results folder exists.
         self.results_folder = results_folder
         self.results_bin_folder = os.path.join(results_folder, 'lidarseg', eval_set)
-        assert os.path.exists(self.results_bin_folder), \
-            'Error: The folder containing the .bin files ({}) does not exist.'.format(self.results_bin_folder)
+        assert os.path.exists(
+            self.results_bin_folder
+        ), f'Error: The folder containing the .bin files ({self.results_bin_folder}) does not exist.'
 
         self.nusc = nusc
         self.results_folder = results_folder
@@ -65,13 +68,13 @@ class LidarSegEval:
         self.num_classes = len(self.mapper.coarse_name_2_coarse_idx_mapping)
 
         if self.verbose:
-            print('There are {} classes.'.format(self.num_classes))
+            print(f'There are {self.num_classes} classes.')
 
         self.global_cm = ConfusionMatrix(self.num_classes, self.ignore_idx)
 
         self.sample_tokens = get_samples_in_eval_set(self.nusc, self.eval_set)
         if self.verbose:
-            print('There are {} samples.'.format(len(self.sample_tokens)))
+            print(f'There are {len(self.sample_tokens)} samples.')
 
     def evaluate(self) -> Dict:
         """
@@ -92,8 +95,12 @@ class LidarSegEval:
             lidarseg_label = self.mapper.convert_label(lidarseg_label)
 
             # Load the predictions for the point cloud.
-            lidarseg_pred_filename = os.path.join(self.results_folder, 'lidarseg',
-                                                  self.eval_set, sd_token + '_lidarseg.bin')
+            lidarseg_pred_filename = os.path.join(
+                self.results_folder,
+                'lidarseg',
+                self.eval_set,
+                f'{sd_token}_lidarseg.bin',
+            )
             lidarseg_pred = load_bin_file(lidarseg_pred_filename)
 
             # Get the confusion matrix between the ground truth and predictions.
@@ -111,7 +118,7 @@ class LidarSegEval:
 
         # Print the results if desired.
         if self.verbose:
-            print("======\nnuScenes-lidarseg evaluation for {}".format(self.eval_set))
+            print(f"======\nnuScenes-lidarseg evaluation for {self.eval_set}")
             print(json.dumps(results, indent=4, sort_keys=False))
             print("======")
 

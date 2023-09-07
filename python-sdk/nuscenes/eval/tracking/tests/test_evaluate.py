@@ -50,16 +50,15 @@ class TestMain(unittest.TestCase):
 
             if tmp is None:
                 return None
+            if not _add_errors or np.random.rand() < .9:
+                return tmp
             else:
-                if not _add_errors or np.random.rand() < .9:
-                    return tmp
-                else:
-                    return class_names[np.random.randint(0, len(class_names) - 1)]
+                return class_names[np.random.randint(0, len(class_names) - 1)]
 
         def random_id(instance_token: str, _add_errors: bool = False) -> str:
             # Alter 10% of the valid ids to be a random string, which hopefully corresponds to a new track.
             if not _add_errors or np.random.rand() < .9:
-                _tracking_id = instance_token + '_pred'
+                _tracking_id = f'{instance_token}_pred'
             else:
                 _tracking_id = str(np.random.randint(0, sys.maxsize))
 
@@ -82,7 +81,7 @@ class TestMain(unittest.TestCase):
                 val_samples.append(sample)
 
         # Prepare results.
-        instance_to_score = dict()
+        instance_to_score = {}
         for sample in tqdm(val_samples, leave=False):
             sample_res = []
             for ann_token in sample['anns']:
@@ -166,9 +165,7 @@ class TestMain(unittest.TestCase):
         cfg = config_factory('tracking_nips_2019')
         nusc_eval = TrackingEval(cfg, self.res_mockup, eval_set=eval_set, output_dir=self.res_eval_folder,
                                  nusc_version=version, nusc_dataroot=os.environ['NUSCENES'], verbose=False)
-        metrics = nusc_eval.main(render_curves=render_curves)
-
-        return metrics
+        return nusc_eval.main(render_curves=render_curves)
 
     @unittest.skip
     def test_delta_mock(self,
@@ -192,7 +189,7 @@ class TestMain(unittest.TestCase):
             self.assertAlmostEqual(metrics['mota'], 0.25003943918566174)
             self.assertAlmostEqual(metrics['motp'], 1.2976508610883917)
         else:
-            print('Skipping checks due to choice of custom eval_set: %s' % eval_set)
+            print(f'Skipping checks due to choice of custom eval_set: {eval_set}')
 
     @unittest.skip
     def test_delta_gt(self,
@@ -228,7 +225,7 @@ class TestMain(unittest.TestCase):
             self.assertAlmostEqual(metrics['tid'], 0.0)
             self.assertAlmostEqual(metrics['lgd'], 0.0)
         else:
-            print('Skipping checks due to choice of custom eval_set: %s' % eval_set)
+            print(f'Skipping checks due to choice of custom eval_set: {eval_set}')
 
 
 if __name__ == '__main__':

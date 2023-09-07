@@ -155,21 +155,39 @@ class DetectionEval:
             print('Rendering PR and TP curves')
 
         def savepath(name):
-            return os.path.join(self.plot_dir, name + '.pdf')
+            return os.path.join(self.plot_dir, f'{name}.pdf')
 
         summary_plot(md_list, metrics, min_precision=self.cfg.min_precision, min_recall=self.cfg.min_recall,
                      dist_th_tp=self.cfg.dist_th_tp, savepath=savepath('summary'))
 
         for detection_name in self.cfg.class_names:
-            class_pr_curve(md_list, metrics, detection_name, self.cfg.min_precision, self.cfg.min_recall,
-                           savepath=savepath(detection_name + '_pr'))
+            class_pr_curve(
+                md_list,
+                metrics,
+                detection_name,
+                self.cfg.min_precision,
+                self.cfg.min_recall,
+                savepath=savepath(f'{detection_name}_pr'),
+            )
 
-            class_tp_curve(md_list, metrics, detection_name, self.cfg.min_recall, self.cfg.dist_th_tp,
-                           savepath=savepath(detection_name + '_tp'))
+            class_tp_curve(
+                md_list,
+                metrics,
+                detection_name,
+                self.cfg.min_recall,
+                self.cfg.dist_th_tp,
+                savepath=savepath(f'{detection_name}_tp'),
+            )
 
         for dist_th in self.cfg.dist_ths:
-            dist_pr_curve(md_list, metrics, dist_th, self.cfg.min_precision, self.cfg.min_recall,
-                          savepath=savepath('dist_pr_' + str(dist_th)))
+            dist_pr_curve(
+                md_list,
+                metrics,
+                dist_th,
+                self.cfg.min_precision,
+                self.cfg.min_recall,
+                savepath=savepath(f'dist_pr_{str(dist_th)}'),
+            )
 
     def main(self,
              plot_examples: int = 0,
@@ -192,13 +210,14 @@ class DetectionEval:
             if not os.path.isdir(example_dir):
                 os.mkdir(example_dir)
             for sample_token in sample_tokens:
-                visualize_sample(self.nusc,
-                                 sample_token,
-                                 self.gt_boxes if self.eval_set != 'test' else EvalBoxes(),
-                                 # Don't render test GT.
-                                 self.pred_boxes,
-                                 eval_range=max(self.cfg.class_range.values()),
-                                 savepath=os.path.join(example_dir, '{}.png'.format(sample_token)))
+                visualize_sample(
+                    self.nusc,
+                    sample_token,
+                    self.gt_boxes if self.eval_set != 'test' else EvalBoxes(),
+                    self.pred_boxes,
+                    eval_range=max(self.cfg.class_range.values()),
+                    savepath=os.path.join(example_dir, f'{sample_token}.png'),
+                )
 
         # Run evaluation.
         metrics, metric_data_list = self.evaluate()
@@ -209,7 +228,7 @@ class DetectionEval:
 
         # Dump the metric data, meta and metrics to disk.
         if self.verbose:
-            print('Saving metrics to: %s' % self.output_dir)
+            print(f'Saving metrics to: {self.output_dir}')
         metrics_summary = metrics.serialize()
         metrics_summary['meta'] = self.meta.copy()
         with open(os.path.join(self.output_dir, 'metrics_summary.json'), 'w') as f:

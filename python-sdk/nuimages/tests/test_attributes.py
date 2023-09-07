@@ -20,10 +20,7 @@ class TestAttributes(unittest.TestCase):
         super().__init__()
 
         self.version = version
-        if dataroot is None:
-            self.dataroot = os.environ['NUIMAGES']
-        else:
-            self.dataroot = dataroot
+        self.dataroot = os.environ['NUIMAGES'] if dataroot is None else dataroot
         self.nuim = NuImages(version=self.version, dataroot=self.dataroot, verbose=False)
         self.valid_attributes = {
             'animal': ['pedestrian', 'vertical_position'],
@@ -70,11 +67,10 @@ class TestAttributes(unittest.TestCase):
             category_name = cat_token_to_name[object_ann['category_token']]
             sample_token = self.nuim.get('sample_data', object_ann['sample_data_token'])['sample_token']
 
-            cur_att_names = []
-            for attribute_token in object_ann['attribute_tokens']:
-                attribute_name = att_token_to_name[attribute_token]
-                cur_att_names.append(attribute_name)
-
+            cur_att_names = [
+                att_token_to_name[attribute_token]
+                for attribute_token in object_ann['attribute_tokens']
+            ]
             # Compare to the required attribute name prefixes.
             # Check that the length is correct.
             required_att_names = self.valid_attributes[category_name]
@@ -86,7 +82,7 @@ class TestAttributes(unittest.TestCase):
                     'cur_att_names': cur_att_names,
                     'required_att_names': required_att_names
                 }
-                error_msg = 'Error: ' + str(debug_output)
+                error_msg = f'Error: {debug_output}'
                 if print_only:
                     print(error_msg)
                 else:
@@ -97,10 +93,9 @@ class TestAttributes(unittest.TestCase):
 
             # Check that they are really the same.
             for required in required_att_names:
-                condition = any([cur.startswith(required + '.') for cur in cur_att_names])
+                condition = any(cur.startswith(f'{required}.') for cur in cur_att_names)
                 if not condition:
-                    error_msg = 'Errors: Required attribute ''%s'' not in %s for class %s! (sample %s)' \
-                                % (required, cur_att_names, category_name, sample_token)
+                    error_msg = f'Errors: Required attribute {required} not in {cur_att_names} for class {category_name}! (sample {sample_token})'
                     if print_only:
                         print(error_msg)
                     else:
@@ -110,6 +105,6 @@ class TestAttributes(unittest.TestCase):
 if __name__ == '__main__':
     # Runs the tests without aborting on error.
     for nuim_version in ['v1.0-train', 'v1.0-val', 'v1.0-test', 'v1.0-mini']:
-        print('Running TestAttributes for version %s...' % nuim_version)
+        print(f'Running TestAttributes for version {nuim_version}...')
         test = TestAttributes(version=nuim_version)
         test.test_object_anns(print_only=True)

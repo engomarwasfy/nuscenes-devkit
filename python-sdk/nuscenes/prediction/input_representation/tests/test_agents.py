@@ -135,10 +135,7 @@ class TestAgentBoxesWithFadedHistory(unittest.TestCase):
                                                    'category_name': 'vehicle'}
 
         def get_colors(name):
-            if 'vehicle' in name:
-                return (255, 0, 0)
-            else:
-                return (255, 255, 0)
+            return (255, 0, 0) if 'vehicle' in name else (255, 255, 0)
 
         agent_rasterizer = agents.AgentBoxesWithFadedHistory(mock_helper,
                                                              color_mapping=get_colors)

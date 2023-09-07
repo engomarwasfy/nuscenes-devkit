@@ -30,9 +30,7 @@ def get_egoposes_on_drivable_ratio(nusc: NuScenes, nusc_map: NuScenesMap, scene_
         if len(record) > 0:
             poses_valid += 1
         poses_all += 1
-    ratio_valid = poses_valid / poses_all
-
-    return ratio_valid
+    return poses_valid / poses_all
 
 
 def get_disconnected_subtrees(connectivity: Dict[str, dict]) -> Set[str]:
@@ -43,15 +41,12 @@ def get_disconnected_subtrees(connectivity: Dict[str, dict]) -> Set[str]:
     """
     # Init.
     connected = set()
-    pending = set()
-
     # Add first lane.
     all_keys = list(connectivity.keys())
     first_key = all_keys[0]
     all_keys = set(all_keys)
-    pending.add(first_key)
-
-    while len(pending) > 0:
+    pending = {first_key}
+    while pending:
         # Get next lane.
         lane_token = pending.pop()
         connected.add(lane_token)

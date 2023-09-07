@@ -78,10 +78,7 @@ class PanopticEval:
         total_tp = tp.sum()
         total = tp[self.include].sum() + fp[self.include].sum()
         total = np.maximum(total, self.eps)
-        # Mean accuracy over all classes.
-        acc_mean = total_tp.astype(np.double) / total.astype(np.double)
-
-        return acc_mean
+        return total_tp.astype(np.double) / total.astype(np.double)
 
     def addBatchPanoptic(self, x_sem_row, x_inst_row, y_sem_row, y_inst_row):
         # make sure instances are not zeros (it messes with my approach)

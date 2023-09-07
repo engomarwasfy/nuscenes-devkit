@@ -150,10 +150,7 @@ class MTPLoss:
         dot_product = float(ref_traj[-1].dot(traj_to_compare[-1]))
         angle = math.degrees(math.acos(max(min(dot_product / traj_norms_product, 1), -1)))
 
-        if angle >= 180:
-            return angle - EPSILON
-
-        return angle
+        return angle - EPSILON if angle >= 180 else angle
 
     @staticmethod
     def _compute_ave_l2_norms(tensor: torch.Tensor) -> float:
@@ -204,27 +201,20 @@ class MTPLoss:
             else:
                 break
 
-        # We choose the best mode at random IF there are no modes with an angle less than the threshold.
         if max_angle_below_thresh_idx == -1:
-            best_mode = random.randint(0, self.num_modes - 1)
+            return random.randint(0, self.num_modes - 1)
 
-        # We choose the best mode to be the one that provides the lowest ave of l2 norms between the
-        # predicted trajectory and the ground truth, taking into account only the modes with an angle
-        # less than the threshold IF there is at least one mode with an angle less than the threshold.
-        else:
-            # Out of the selected modes above, we choose the final best mode as that which returns the
-            # smallest ave of l2 norms between the predicted and ground truth trajectories.
-            distances_from_ground_truth = []
+        # Out of the selected modes above, we choose the final best mode as that which returns the
+        # smallest ave of l2 norms between the predicted and ground truth trajectories.
+        distances_from_ground_truth = []
 
-            for angle, mode in angles_from_ground_truth[:max_angle_below_thresh_idx + 1]:
-                norm = self._compute_ave_l2_norms(target - trajectories[mode, :, :])
+        for angle, mode in angles_from_ground_truth[:max_angle_below_thresh_idx + 1]:
+            norm = self._compute_ave_l2_norms(target - trajectories[mode, :, :])
 
-                distances_from_ground_truth.append((norm, mode))
+            distances_from_ground_truth.append((norm, mode))
 
-            distances_from_ground_truth = sorted(distances_from_ground_truth)
-            best_mode = distances_from_ground_truth[0][1]
-
-        return best_mode
+        distances_from_ground_truth = sorted(distances_from_ground_truth)
+        return distances_from_ground_truth[0][1]
 
     def __call__(self, predictions: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
         """
@@ -260,6 +250,4 @@ class MTPLoss:
 
             batch_losses = torch.cat((batch_losses, loss.unsqueeze(0)), 0)
 
-        avg_loss = torch.mean(batch_losses)
-
-        return avg_loss
+        return torch.mean(batch_losses)

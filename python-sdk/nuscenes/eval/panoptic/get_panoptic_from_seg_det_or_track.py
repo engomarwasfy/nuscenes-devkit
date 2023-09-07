@@ -42,8 +42,10 @@ def generate_panoptic_labels(nusc: NuScenes,
     :param out_dir: Path to save any output to.
     :param verbose: Whether to print any output.
     """
-    assert task in ['tracking', 'segmentation'], \
-        'Error: Task can only be either `tracking` or `segmentation, not {}'.format(task)
+    assert task in {
+        'tracking',
+        'segmentation',
+    }, f'Error: Task can only be either `tracking` or `segmentation, not {task}'
 
     sample_tokens = get_samples_in_eval_set(nusc, eval_set)
     num_samples = len(sample_tokens)

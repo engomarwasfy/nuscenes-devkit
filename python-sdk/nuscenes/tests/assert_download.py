@@ -18,13 +18,13 @@ def verify_setup(nusc: NuScenes):
     print('Checking that sample_data files are complete...')
     for sd in tqdm(nusc.sample_data):
         file_path = os.path.join(nusc.dataroot, sd['filename'])
-        assert os.path.exists(file_path), 'Error: Missing sample_data at: %s' % file_path
+        assert os.path.exists(file_path), f'Error: Missing sample_data at: {file_path}'
 
     # Check that each map file exists.
     print('Checking that map files are complete...')
     for map in tqdm(nusc.map):
         file_path = os.path.join(nusc.dataroot, map['filename'])
-        assert os.path.exists(file_path), 'Error: Missing map at: %s' % file_path
+        assert os.path.exists(file_path), f'Error: Missing map at: {file_path}'
 
 
 if __name__ == "__main__":

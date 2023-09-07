@@ -161,7 +161,7 @@ class KittiConverter:
 
             # Convert image (jpg to png).
             src_im_path = os.path.join(self.nusc.dataroot, filename_cam_full)
-            dst_im_path = os.path.join(image_folder, sample_token + '.png')
+            dst_im_path = os.path.join(image_folder, f'{sample_token}.png')
             if not os.path.exists(dst_im_path):
                 im = Image.open(src_im_path)
                 im.save(dst_im_path, "PNG")
@@ -169,7 +169,7 @@ class KittiConverter:
             # Convert lidar.
             # Note that we are only using a single sweep, instead of the commonly used n sweeps.
             src_lid_path = os.path.join(self.nusc.dataroot, filename_lid_full)
-            dst_lid_path = os.path.join(lidar_folder, sample_token + '.bin')
+            dst_lid_path = os.path.join(lidar_folder, f'{sample_token}.bin')
             assert not dst_lid_path.endswith('.pcd.bin')
             pcl = LidarPointCloud.from_file(src_lid_path)
             pcl.rotate(kitti_to_nu_lidar_inv.rotation_matrix)  # In KITTI lidar frame.
@@ -180,15 +180,14 @@ class KittiConverter:
             tokens.append(sample_token)
 
             # Create calibration file.
-            kitti_transforms = dict()
-            kitti_transforms['P0'] = np.zeros((3, 4))  # Dummy values.
+            kitti_transforms = {'P0': np.zeros((3, 4))}
             kitti_transforms['P1'] = np.zeros((3, 4))  # Dummy values.
             kitti_transforms['P2'] = p_left_kitti  # Left camera transform.
             kitti_transforms['P3'] = np.zeros((3, 4))  # Dummy values.
             kitti_transforms['R0_rect'] = r0_rect.rotation_matrix  # Cameras are already rectified.
             kitti_transforms['Tr_velo_to_cam'] = np.hstack((velo_to_cam_rot, velo_to_cam_trans.reshape(3, 1)))
             kitti_transforms['Tr_imu_to_velo'] = imu_to_velo_kitti
-            calib_path = os.path.join(calib_folder, sample_token + '.txt')
+            calib_path = os.path.join(calib_folder, f'{sample_token}.txt')
             with open(calib_path, "w") as calib_file:
                 for (key, val) in kitti_transforms.items():
                     val = val.flatten()
@@ -198,13 +197,19 @@ class KittiConverter:
                     calib_file.write('%s: %s\n' % (key, val_str))
 
             # Write label file.
-            label_path = os.path.join(label_folder, sample_token + '.txt')
+            label_path = os.path.join(label_folder, f'{sample_token}.txt')
             if os.path.exists(label_path):
-                print('Skipping existing file: %s' % label_path)
+                print(f'Skipping existing file: {label_path}')
                 continue
             else:
-                print('Writing file: %s' % label_path)
+                print(f'Writing file: {label_path}')
             with open(label_path, "w") as label_file:
+                # Truncated: Set all objects to 0 which means untruncated.
+                truncated = 0.0
+
+                # Occluded: Set all objects to full visibility as this information is not available in nuScenes.
+                occluded = 0
+
                 for sample_annotation_token in sample_annotation_tokens:
                     sample_annotation = self.nusc.get('sample_annotation', sample_annotation_token)
 
@@ -212,12 +217,6 @@ class KittiConverter:
                     _, box_lidar_nusc, _ = self.nusc.get_sample_data(lidar_token, box_vis_level=BoxVisibility.NONE,
                                                                      selected_anntokens=[sample_annotation_token])
                     box_lidar_nusc = box_lidar_nusc[0]
-
-                    # Truncated: Set all objects to 0 which means untruncated.
-                    truncated = 0.0
-
-                    # Occluded: Set all objects to full visibility as this information is not available in nuScenes.
-                    occluded = 0
 
                     # Convert nuScenes category to nuScenes detection challenge category.
                     detection_name = category_to_detection_name(sample_annotation['category_name'])
@@ -266,8 +265,8 @@ class KittiConverter:
         # Render each image.
         for token in kitti.tokens[:self.image_count]:
             for sensor in ['lidar', 'camera']:
-                out_path = os.path.join(render_dir, '%s_%s.png' % (token, sensor))
-                print('Rendering file to disk: %s' % out_path)
+                out_path = os.path.join(render_dir, f'{token}_{sensor}.png')
+                print(f'Rendering file to disk: {out_path}')
                 kitti.render_sample_data(token, sensor_modality=sensor, out_path=out_path, render_2d=render_2d)
                 plt.close()  # Close the windows to avoid a warning of too many open windows.
 
@@ -301,7 +300,7 @@ class KittiConverter:
 
         for sample_token in sample_tokens:
             # Get the KITTI boxes we just generated in LIDAR frame.
-            kitti_token = '%s_%s' % (self.split, sample_token)
+            kitti_token = f'{self.split}_{sample_token}'
             boxes = kitti.get_boxes(token=kitti_token)
 
             # Convert KITTI boxes to nuScenes detection challenge result format.
@@ -316,7 +315,7 @@ class KittiConverter:
             'results': results
         }
         submission_path = os.path.join(self.nusc_kitti_dir, 'submission.json')
-        print('Writing submission to: %s' % submission_path)
+        print(f'Writing submission to: {submission_path}')
         with open(submission_path, 'w') as f:
             json.dump(submission, f, indent=2)
 
@@ -330,9 +329,10 @@ class KittiConverter:
         detection_score = box.score
 
         # Create result dict
-        sample_result = dict()
-        sample_result['sample_token'] = sample_token
-        sample_result['translation'] = translation.tolist()
+        sample_result = {
+            'sample_token': sample_token,
+            'translation': translation.tolist(),
+        }
         sample_result['size'] = size.tolist()
         sample_result['rotation'] = rotation.tolist()
         sample_result['velocity'] = velocity.tolist()[:2]  # Only need vx, vy.

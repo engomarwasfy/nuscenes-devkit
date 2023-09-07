@@ -18,7 +18,7 @@ from nuscenes.utils.color_map import get_colormap
 
 PYTHON_VERSION = sys.version_info[0]
 
-if not PYTHON_VERSION == 3:
+if PYTHON_VERSION != 3:
     raise ValueError("nuScenes dev-kit only supports Python version 3.")
 
 
@@ -47,17 +47,17 @@ class NuImages:
         self.table_names = ['attribute', 'calibrated_sensor', 'category', 'ego_pose', 'log', 'object_ann', 'sample',
                             'sample_data', 'sensor', 'surface_ann']
 
-        assert osp.exists(self.table_root), 'Database version not found: {}'.format(self.table_root)
+        assert osp.exists(
+            self.table_root
+        ), f'Database version not found: {self.table_root}'
 
         start_time = time.time()
         if verbose:
-            print("======\nLoading nuImages tables for version {}...".format(self.version))
+            print(f"======\nLoading nuImages tables for version {self.version}...")
 
-        # Init reverse indexing.
-        self._token2ind: Dict[str, Optional[dict]] = dict()
-        for table in self.table_names:
-            self._token2ind[table] = None
-
+        self._token2ind: Dict[str, Optional[dict]] = {
+            table: None for table in self.table_names
+        }
         # Load tables directly if requested.
         if not self.lazy:
             # Explicitly init tables to help the IDE determine valid class members.
@@ -97,7 +97,7 @@ class NuImages:
         :param token: Token of the record.
         :return: Table record. See README.md for record details for each table.
         """
-        assert table_name in self.table_names, "Table {} not found".format(table_name)
+        assert table_name in self.table_names, f"Table {table_name} not found"
 
         return getattr(self, table_name)[self.getind(table_name, token)]
 
@@ -110,7 +110,7 @@ class NuImages:
         """
         # Lazy loading: Compute reverse indices.
         if self._token2ind[table_name] is None:
-            self._token2ind[table_name] = dict()
+            self._token2ind[table_name] = {}
             for ind, member in enumerate(getattr(self, table_name)):
                 self._token2ind[table_name][member['token']] = ind
 
@@ -140,10 +140,9 @@ class NuImages:
         """
         if attr_name in self.__dict__.keys():
             return self.__getattribute__(attr_name)
-        else:
-            attr = loading_func(attr_name)
-            self.__setattr__(attr_name, attr)
-            return attr
+        attr = loading_func(attr_name)
+        self.__setattr__(attr_name, attr)
+        return attr
 
     def __load_table__(self, table_name) -> List[dict]:
         """
@@ -152,8 +151,8 @@ class NuImages:
         :return: The table dictionary.
         """
         start_time = time.time()
-        table_path = osp.join(self.table_root, '{}.json'.format(table_name))
-        assert osp.exists(table_path), 'Error: Table %s does not exist!' % table_name
+        table_path = osp.join(self.table_root, f'{table_name}.json')
+        assert osp.exists(table_path), f'Error: Table {table_name} does not exist!'
         with open(table_path) as f:
             table = json.load(f)
         end_time = time.time()
@@ -176,17 +175,15 @@ class NuImages:
         if src_table == 'sample_data' and tgt_table == 'sensor':
             sample_data = self.get('sample_data', src_token)
             calibrated_sensor = self.get('calibrated_sensor', sample_data['calibrated_sensor_token'])
-            sensor = self.get('sensor', calibrated_sensor['sensor_token'])
-
-            return sensor
-        elif (src_table == 'object_ann' or src_table == 'surface_ann') and tgt_table == 'sample':
+            return self.get('sensor', calibrated_sensor['sensor_token'])
+        elif src_table in {'object_ann', 'surface_ann'} and tgt_table == 'sample':
             src = self.get(src_table, src_token)
             sample_data = self.get('sample_data', src['sample_data_token'])
-            sample = self.get('sample', sample_data['sample_token'])
-
-            return sample
+            return self.get('sample', sample_data['sample_token'])
         else:
-            raise Exception('Error: Shortcut from %s to %s not implemented!' % (src_table, tgt_table))
+            raise Exception(
+                f'Error: Shortcut from {src_table} to {tgt_table} not implemented!'
+            )
 
     def check_sweeps(self, filename: str) -> None:
         """
@@ -221,14 +218,14 @@ class NuImages:
                 attribute_freqs[attribute_token] += 1
 
         # Sort entries.
-        if sort_by == 'name':
-            sort_order = [i for (i, _) in sorted(enumerate(self.attribute), key=lambda x: x[1]['name'])]
-        elif sort_by == 'freq':
+        if sort_by == 'freq':
             attribute_freqs_order = [attribute_freqs[c['token']] for c in self.attribute]
             sort_order = [i for (i, _) in
                           sorted(enumerate(attribute_freqs_order), key=lambda x: x[1], reverse=True)]
+        elif sort_by == 'name':
+            sort_order = [i for (i, _) in sorted(enumerate(self.attribute), key=lambda x: x[1]['name'])]
         else:
-            raise Exception('Error: Invalid sorting criterion %s!' % sort_by)
+            raise Exception(f'Error: Invalid sorting criterion {sort_by}!')
 
         # Print to stdout.
         format_str = '{:11} {:24.24} {:48.48}'
@@ -262,8 +259,7 @@ class NuImages:
         format_str = '{:15} {:7} {:25}'
         print()
         print(format_str.format('Calibr. sensors', 'Samples', 'Channel'))
-        for channel in cs_freqs.keys():
-            cs_freq = cs_freqs[channel]
+        for channel, cs_freq in cs_freqs.items():
             channel_freq = channel_freqs[channel]
             print(format_str.format(
                 cs_freq, channel_freq, channel))
@@ -304,7 +300,7 @@ class NuImages:
             surface_freqs_order = [surface_freqs[c['token']] for c in self.category]
             sort_order = [i for (i, _) in sorted(enumerate(surface_freqs_order), key=lambda x: x[1], reverse=True)]
         else:
-            raise Exception('Error: Invalid sorting criterion %s!' % sort_by)
+            raise Exception(f'Error: Invalid sorting criterion {sort_by}!')
 
         # Print to stdout.
         format_str = '{:11} {:12} {:24.24} {:48.48}'
@@ -346,7 +342,7 @@ class NuImages:
             for object_ann in object_anns:
                 category = self.get('category', object_ann['category_token'])
                 attribute_names = [self.get('attribute', at)['name'] for at in object_ann['attribute_tokens']]
-                print('{} {} {}'.format(object_ann['token'], category['name'], attribute_names))
+                print(f"{object_ann['token']} {category['name']} {attribute_names}")
 
             print('\nPrinting surface annotations:')
             for surface_ann in surface_anns:
@@ -456,10 +452,7 @@ class NuImages:
             cur_sd = self.get('sample_data', cur_sd['prev'])
             backward.append(cur_sd['token'])
 
-        # Combine.
-        result = backward[::-1] + [key_sd['token']] + forward
-
-        return result
+        return backward[::-1] + [key_sd['token']] + forward
 
     def get_ego_pose_data(self,
                           sample_token: str,
@@ -474,13 +467,18 @@ class NuImages:
             attributes: A matrix with sample_datas x len(attribute) number of fields.
         )
         """
-        assert attribute_name in ['translation', 'rotation', 'rotation_rate', 'acceleration', 'speed'], \
-            'Error: The attribute_name %s is not a valid option!' % attribute_name
+        assert attribute_name in {
+            'translation',
+            'rotation',
+            'rotation_rate',
+            'acceleration',
+            'speed',
+        }, f'Error: The attribute_name {attribute_name} is not a valid option!'
 
-        if attribute_name == 'speed':
-            attribute_len = 1
-        elif attribute_name == 'rotation':
+        if attribute_name == 'rotation':
             attribute_len = 4
+        elif attribute_name == 'speed':
+            attribute_len = 1
         else:
             attribute_len = 3
 
@@ -662,17 +660,17 @@ class NuImages:
         draw = ImageDraw.Draw(im, 'RGBA')
 
         annotations_types = ['all', 'surfaces', 'objects', 'none']
-        assert annotation_type in annotations_types, \
-            'Error: {} is not a valid option for annotation_type. ' \
-            'Only {} are allowed.'.format(annotation_type, annotations_types)
+        assert (
+            annotation_type in annotations_types
+        ), f'Error: {annotation_type} is not a valid option for annotation_type. Only {annotations_types} are allowed.'
         if annotation_type != 'none':
-            if annotation_type == 'all' or annotation_type == 'surfaces':
+            if annotation_type in {'all', 'surfaces'}:
                 # Load stuff / surface regions.
                 surface_anns = [o for o in self.surface_ann if o['sample_data_token'] == sd_token]
                 if surface_tokens is not None:
-                    sd_surface_tokens = set([s['token'] for s in surface_anns if s['token']])
+                    sd_surface_tokens = {s['token'] for s in surface_anns if s['token']}
                     assert set(surface_tokens).issubset(sd_surface_tokens), \
-                        'Error: The provided surface_tokens do not belong to the sd_token!'
+                            'Error: The provided surface_tokens do not belong to the sd_token!'
                     surface_anns = [o for o in surface_anns if o['token'] in surface_tokens]
 
                 # Draw stuff / surface regions.
@@ -688,13 +686,13 @@ class NuImages:
                     # Draw mask. The label is obvious from the color.
                     draw.bitmap((0, 0), Image.fromarray(mask * 128), fill=tuple(color + (128,)))
 
-            if annotation_type == 'all' or annotation_type == 'objects':
+            if annotation_type in {'all', 'objects'}:
                 # Load object instances.
                 object_anns = [o for o in self.object_ann if o['sample_data_token'] == sd_token]
                 if object_tokens is not None:
-                    sd_object_tokens = set([o['token'] for o in object_anns if o['token']])
+                    sd_object_tokens = {o['token'] for o in object_anns if o['token']}
                     assert set(object_tokens).issubset(sd_object_tokens), \
-                        'Error: The provided object_tokens do not belong to the sd_token!'
+                            'Error: The provided object_tokens do not belong to the sd_token!'
                     object_anns = [o for o in object_anns if o['token'] in object_tokens]
 
                 # Draw object instances.
@@ -703,7 +701,6 @@ class NuImages:
                     category_token = ann['category_token']
                     category_name = self.get('category', category_token)['name']
                     color = self.color_map[category_name]
-                    bbox = ann['bbox']
                     attr_tokens = ann['attribute_tokens']
                     attributes = [self.get('attribute', at) for at in attr_tokens]
                     name = annotation_name(attributes, category_name, with_attributes=with_attributes)
@@ -712,6 +709,7 @@ class NuImages:
 
                         # Draw mask, rectangle and text.
                         draw.bitmap((0, 0), Image.fromarray(mask * 128), fill=tuple(color + (128,)))
+                        bbox = ann['bbox']
                         draw.rectangle(bbox, outline=color, width=box_line_width)
                         if with_category:
                             draw.text((bbox[0], bbox[1]), name, font=font)

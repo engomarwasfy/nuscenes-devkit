@@ -83,7 +83,7 @@ def render_histogram(nusc: NuScenes,
 
     # Align the two dictionaries by adding entries for the stuff classes to panoptic_num_instances_per_class; the
     # instance count for each of these stuff classes is 0.
-    panoptic_num_instances_per_class_tmp = dict()
+    panoptic_num_instances_per_class_tmp = {}
     for class_name in lidarseg_num_points_per_class.keys():
         num_instances_for_class = panoptic_num_instances_per_class.get(class_name, 0)
         panoptic_num_instances_per_class_tmp[class_name] = num_instances_for_class
@@ -104,9 +104,10 @@ def render_histogram(nusc: NuScenes,
     })
 
     # Ensure the same set of class names are used for all histograms.
-    assert lidarseg_num_points_per_class.keys() == panoptic_num_instances_per_class.keys(), \
-        'Error: There are {} classes for lidarseg, but {} classes for panoptic.'.format(
-            len(lidarseg_num_points_per_class.keys()), len(panoptic_num_instances_per_class.keys()))
+    assert (
+        lidarseg_num_points_per_class.keys()
+        == panoptic_num_instances_per_class.keys()
+    ), f'Error: There are {len(lidarseg_num_points_per_class.keys())} classes for lidarseg, but {len(panoptic_num_instances_per_class.keys())} classes for panoptic.'
     class_names = list(lidarseg_num_points_per_class.keys())
 
     # Create an array with the colors to use.
@@ -131,8 +132,9 @@ def render_histogram(nusc: NuScenes,
     # Plot the histograms.
     for i, (histogram, config) in enumerate(histograms_config.items()):
         axes[i].bar(class_names, config['y_values'], color=colors)
-        assert len(class_names) == len(axes[i].get_xticks()), \
-            'There are {} classes, but {} are shown on the x-axis'.format(len(class_names), len(axes[i].get_xticks()))
+        assert len(class_names) == len(
+            axes[i].get_xticks()
+        ), f'There are {len(class_names)} classes, but {len(axes[i].get_xticks())} are shown on the x-axis'
 
         # Format the x-axis.
         axes[i].set_xticklabels(class_names, rotation=45, horizontalalignment='right',
@@ -184,21 +186,22 @@ def get_lidarseg_num_points_per_class(nusc: NuScenes, sort_by: str = 'count_desc
         for class_idx, class_count in zip(ii, indices[ii]):
             lidarseg_counts[class_idx] += class_count
 
-    num_points_per_class = dict()
-    for i in range(len(lidarseg_counts)):
-        num_points_per_class[nusc.lidarseg_idx2name_mapping[i]] = lidarseg_counts[i]
-
-    if sort_by == 'count_desc':
-        num_points_per_class = dict(sorted(num_points_per_class.items(), key=lambda item: item[1], reverse=True))
-    elif sort_by == 'count_asc':
+    num_points_per_class = {
+        nusc.lidarseg_idx2name_mapping[i]: lidarseg_counts[i]
+        for i in range(len(lidarseg_counts))
+    }
+    if sort_by == 'count_asc':
         num_points_per_class = dict(sorted(num_points_per_class.items(), key=lambda item: item[1]))
+    elif sort_by == 'count_desc':
+        num_points_per_class = dict(sorted(num_points_per_class.items(), key=lambda item: item[1], reverse=True))
+    elif sort_by == 'index':
+        num_points_per_class = dict(num_points_per_class)
     elif sort_by == 'name':
         num_points_per_class = dict(sorted(num_points_per_class.items()))
-    elif sort_by == 'index':
-        num_points_per_class = dict(num_points_per_class.items())
     else:
-        raise Exception('Error: Invalid sorting mode {}. '
-                        'Only `count_desc`, `count_asc`, `name` or `index` are valid.'.format(sort_by))
+        raise Exception(
+            f'Error: Invalid sorting mode {sort_by}. Only `count_desc`, `count_asc`, `name` or `index` are valid.'
+        )
 
     return num_points_per_class
 
@@ -215,25 +218,26 @@ def get_panoptic_num_instances_per_class(nusc: NuScenes, sort_by: str = 'count_d
     :return: A dictionary whose keys are the class names and values are the corresponding number of scan-wise instances
         for each class.
     """
-    sequence_wise_instances_per_class = dict()
+    sequence_wise_instances_per_class = {}
     for instance in nusc.instance:
         instance_class = nusc.get('category', instance['category_token'])['name']
         if instance_class not in sequence_wise_instances_per_class.keys():
             sequence_wise_instances_per_class[instance_class] = 0
         sequence_wise_instances_per_class[instance_class] += instance['nbr_annotations']
 
-    if sort_by == 'count_desc':
-        sequence_wise_instances_per_class = dict(
-            sorted(sequence_wise_instances_per_class.items(), key=lambda item: item[1], reverse=True))
-    elif sort_by == 'count_asc':
+    if sort_by == 'count_asc':
         sequence_wise_instances_per_class = dict(
             sorted(sequence_wise_instances_per_class.items(), key=lambda item: item[1]))
+    elif sort_by == 'count_desc':
+        sequence_wise_instances_per_class = dict(
+            sorted(sequence_wise_instances_per_class.items(), key=lambda item: item[1], reverse=True))
+    elif sort_by == 'index':
+        sequence_wise_instances_per_class = dict(sequence_wise_instances_per_class)
     elif sort_by == 'name':
         sequence_wise_instances_per_class = dict(sorted(sequence_wise_instances_per_class.items()))
-    elif sort_by == 'index':
-        sequence_wise_instances_per_class = dict(sequence_wise_instances_per_class.items())
     else:
-        raise Exception('Error: Invalid sorting mode {}. '
-                        'Only `count_desc`, `count_asc`, `name` or `index` are valid.'.format(sort_by))
+        raise Exception(
+            f'Error: Invalid sorting mode {sort_by}. Only `count_desc`, `count_asc`, `name` or `index` are valid.'
+        )
 
     return sequence_wise_instances_per_class

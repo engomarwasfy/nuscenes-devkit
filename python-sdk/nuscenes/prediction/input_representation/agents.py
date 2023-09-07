@@ -37,9 +37,7 @@ def pixels_to_box_corners(row_pixel: int,
     # so that is why we negate the rotation angle
     coord_tuple = ((column_pixel, row_pixel), (length_in_pixels, width_in_pixels), -yaw_in_radians * 180 / np.pi)
 
-    box = cv2.boxPoints(coord_tuple)
-
-    return box
+    return cv2.boxPoints(coord_tuple)
 
 
 def get_track_box(annotation: Dict[str, Any],
@@ -132,10 +130,9 @@ def fade_color(color: Tuple[int, int, int],
 
     new_value = LOWEST_VALUE + step * increment
 
-    new_rgb = colorsys.hsv_to_rgb(float(hsv_color[0]),
-                                  float(hsv_color[1]),
-                                  new_value * 255.)
-    return new_rgb
+    return colorsys.hsv_to_rgb(
+        float(hsv_color[0]), float(hsv_color[1]), new_value * 255.0
+    )
 
 
 def default_colors(category_name: str) -> Tuple[int, int, int]:
@@ -214,7 +211,7 @@ class AgentBoxesWithFadedHistory(AgentRepresentation):
         self.seconds_of_history = seconds_of_history
         self.frequency_in_hz = frequency_in_hz
 
-        if not resolution > 0:
+        if resolution <= 0:
             raise ValueError(f"Resolution must be positive. Received {resolution}.")
 
         self.resolution = resolution

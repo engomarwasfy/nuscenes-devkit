@@ -68,7 +68,7 @@ if __name__ == "__main__":
               '8ce4fe54af77467d90c840465f69677f_de7593d76648450e947ba0c203dee1b0',
               'f4af7fd215ee47aa8b64bac0443d7be8_9ee4020153674b9e9943d395ff8cfdf3']
 
-    tokens = tokens * 32
+    tokens *= 32
 
     nusc = NuScenes('v1.0-trainval', dataroot=args.data_root)
     helper = PredictHelper(nusc)
@@ -111,7 +111,7 @@ if __name__ == "__main__":
 
             if n_iter % 32 == 0:
                 print(f"Number of iterations: {n_iter}.")
-            
+
             n_iter += 1
 
 

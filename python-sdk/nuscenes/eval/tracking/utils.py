@@ -38,10 +38,7 @@ def category_to_tracking_name(category_name: str) -> Optional[str]:
         'vehicle.truck': 'truck'
     }
 
-    if category_name in tracking_mapping:
-        return tracking_mapping[category_name]
-    else:
-        return None
+    return tracking_mapping.get(category_name, None)
 
 
 def metric_name_to_print_format(metric_name) -> str:
@@ -51,14 +48,13 @@ def metric_name_to_print_format(metric_name) -> str:
     :return: The print format.
     """
     if metric_name in ['amota', 'amotp', 'motar', 'recall', 'mota', 'motp']:
-        print_format = '%.3f'
+        return '%.3f'
     elif metric_name in ['tid', 'lgd']:
-        print_format = '%.2f'
+        return '%.2f'
     elif metric_name in ['faf']:
-        print_format = '%.1f'
+        return '%.1f'
     else:
-        print_format = '%d'
-    return print_format
+        return '%d'
 
 
 def print_final_metrics(metrics: TrackingMetrics) -> None:
@@ -78,7 +74,7 @@ def print_final_metrics(metrics: TrackingMetrics) -> None:
     max_name_length = 7
     for class_name in class_names:
         print_class_name = class_name[:max_name_length].ljust(max_name_length + 1)
-        print('%s' % print_class_name, end='')
+        print(f'{print_class_name}', end='')
 
         for metric_name in metric_names:
             val = metrics.label_metrics[metric_name][class_name]

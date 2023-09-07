@@ -40,14 +40,16 @@ def render_rare_classes(nuim: NuImages,
     total_freqs = len(nuim.object_ann)
     filter_categories_freq = sorted([k for (k, v) in object_freqs.items() if v / total_freqs <= max_frequency])
     assert len(filter_categories_freq) > 0, 'Error: No classes found with the specified max_frequency!'
-    print('The rare classes are: %s' % filter_categories_freq)
+    print(f'The rare classes are: {filter_categories_freq}')
 
     # If specified, additionally filter these categories by what was requested.
     if filter_categories is None:
         filter_categories = filter_categories_freq
     else:
         filter_categories = list(set(filter_categories_freq).intersection(set(filter_categories)))
-        assert len(filter_categories) > 0, 'Error: No categories left after applying filter_categories!'
+        assert (
+            filter_categories
+        ), 'Error: No categories left after applying filter_categories!'
 
     # Call render function.
     render_images(nuim, filter_categories=filter_categories, **render_args)

@@ -65,7 +65,7 @@ class NuScenesPanopticEval:
         :param verbose: Whether to print messages during the evaluation.
         """
         assert hasattr(nusc, 'panoptic') and len(getattr(nusc, 'panoptic')) > 0,\
-            f'Error: no panoptic ground truths found in {nusc.version}'
+                f'Error: no panoptic ground truths found in {nusc.version}'
 
         supported_tasks = ['segmentation', 'tracking']
         if task not in supported_tasks:
@@ -73,7 +73,7 @@ class NuScenesPanopticEval:
 
         results_npz_folder = os.path.join(results_folder, 'panoptic', eval_set)
         assert os.path.exists(results_npz_folder), \
-            f'Error: The folder containing the .npz files ({results_npz_folder}) does not exist.'
+                f'Error: The folder containing the .npz files ({results_npz_folder}) does not exist.'
 
         self.nusc = nusc
         self.results_folder = results_folder
@@ -105,7 +105,7 @@ class NuScenesPanopticEval:
                                                               ignore=[self.ignore_idx],
                                                               min_points=self.min_inst_points)
 
-        self.eval_result_file = os.path.join(self.out_dir, self.task + '-result.json')
+        self.eval_result_file = os.path.join(self.out_dir, f'{self.task}-result.json')
         if os.path.isfile(self.eval_result_file):
             os.remove(self.eval_result_file)
 
@@ -143,8 +143,12 @@ class NuScenesPanopticEval:
             # Filter eval classes.
             label_sem = self.mapper.convert_label(panoptic_label // 1000)
             label_inst = panoptic_label
-            panoptic_pred_filename = os.path.join(self.results_folder, 'panoptic', self.eval_set,
-                                                  sd_token + '_panoptic.npz')
+            panoptic_pred_filename = os.path.join(
+                self.results_folder,
+                'panoptic',
+                self.eval_set,
+                f'{sd_token}_panoptic.npz',
+            )
             panoptic_pred = load_bin_file(panoptic_pred_filename, type='panoptic')
             pred_sem = panoptic_pred // 1000
             pred_inst = panoptic_pred
@@ -156,9 +160,16 @@ class NuScenesPanopticEval:
         mean_pq, mean_sq, mean_rq, class_all_pq, class_all_sq, class_all_rq = self.evaluator['segmentation'].getPQ()
         mean_iou, class_all_iou = self.evaluator['segmentation'].getSemIoU()
 
-        results = self.wrap_result_segmentation(mean_pq, mean_sq, mean_rq, mean_iou, class_all_pq, class_all_sq,
-                                                class_all_rq, class_all_iou)
-        return results
+        return self.wrap_result_segmentation(
+            mean_pq,
+            mean_sq,
+            mean_rq,
+            mean_iou,
+            class_all_pq,
+            class_all_sq,
+            class_all_rq,
+            class_all_iou,
+        )
 
     def wrap_result_segmentation(self,
                                  mean_pq: np.ndarray,
@@ -187,8 +198,7 @@ class NuScenesPanopticEval:
         class_all_rq = class_all_rq.flatten().tolist()
         class_all_iou = class_all_iou.flatten().tolist()
 
-        results = dict()
-        results["all"] = dict(PQ=mean_pq, SQ=mean_sq, RQ=mean_rq, mIoU=mean_iou)
+        results = {"all": dict(PQ=mean_pq, SQ=mean_sq, RQ=mean_rq, mIoU=mean_iou)}
         for idx, (pq, rq, sq, iou) in enumerate(zip(class_all_pq, class_all_rq, class_all_sq, class_all_iou)):
             results[self.id2name[idx]] = dict(PQ=pq, SQ=sq, RQ=rq, IoU=iou)
         thing_pq_list = [float(results[c]["PQ"]) for c in self.things]
@@ -229,7 +239,12 @@ class NuScenesPanopticEval:
                 label_inst = label_inst[-2:]
 
                 # Load predictions for the point cloud, filter evaluation classes.
-                pred_file = os.path.join(self.results_folder, 'panoptic', self.eval_set, sd_token + '_panoptic.npz')
+                pred_file = os.path.join(
+                    self.results_folder,
+                    'panoptic',
+                    self.eval_set,
+                    f'{sd_token}_panoptic.npz',
+                )
                 panoptic_pred = load_bin_file(pred_file, type='panoptic')
                 pred_sem.append(panoptic_pred // 1000)
                 pred_sem = pred_sem[-2:]
@@ -249,22 +264,22 @@ class NuScenesPanopticEval:
         lstq, s_assoc = self.evaluator['tracking'].get_lstq()
         mean_motsa, mean_s_motsa, mean_motsp = self.evaluator['tracking'].get_motsa()
 
-        results = self.wrap_result_mopt(pat=pat,
-                                        mean_pq=mean_pq,
-                                        mean_tq=mean_tq,
-                                        mean_ptq=mean_ptq,
-                                        class_all_ptq=class_all_ptq,
-                                        mean_sptq=mean_sptq,
-                                        class_all_sptq=class_all_sptq,
-                                        mean_iou=mean_iou,
-                                        class_all_iou=class_all_iou,
-                                        lstq=lstq,
-                                        s_assoc=s_assoc,
-                                        mean_motsa=mean_motsa,
-                                        mean_s_motsa=mean_s_motsa,
-                                        mean_motsp=mean_motsp)
-
-        return results
+        return self.wrap_result_mopt(
+            pat=pat,
+            mean_pq=mean_pq,
+            mean_tq=mean_tq,
+            mean_ptq=mean_ptq,
+            class_all_ptq=class_all_ptq,
+            mean_sptq=mean_sptq,
+            class_all_sptq=class_all_sptq,
+            mean_iou=mean_iou,
+            class_all_iou=class_all_iou,
+            lstq=lstq,
+            s_assoc=s_assoc,
+            mean_motsa=mean_motsa,
+            mean_s_motsa=mean_s_motsa,
+            mean_motsp=mean_motsp,
+        )
 
     def wrap_result_mopt(self,
                          pat: np.ndarray,
@@ -305,10 +320,21 @@ class NuScenesPanopticEval:
         class_all_sptq = class_all_sptq.flatten().tolist()
         class_all_iou = class_all_iou.flatten().tolist()
 
-        results = dict()
-        results["all"] = dict(PAT=pat, PQ=mean_pq, TQ=mean_tq, PTQ=mean_ptq, sPTQ=mean_sptq,
-                              LSTQ=lstq, mIoU=mean_iou, S_assoc=s_assoc, MOTSA=mean_motsa,
-                              sMOTSA=mean_s_motsa, MOTSP=mean_motsp)
+        results = {
+            "all": dict(
+                PAT=pat,
+                PQ=mean_pq,
+                TQ=mean_tq,
+                PTQ=mean_ptq,
+                sPTQ=mean_sptq,
+                LSTQ=lstq,
+                mIoU=mean_iou,
+                S_assoc=s_assoc,
+                MOTSA=mean_motsa,
+                sMOTSA=mean_s_motsa,
+                MOTSP=mean_motsp,
+            )
+        }
         for idx, (ptq, sptq, iou) in enumerate(zip(class_all_ptq, class_all_sptq, class_all_iou)):
             results[self.id2name[idx]] = dict(PTQ=ptq, sPTQ=sptq, IoU=iou)
         thing_ptq_list = [float(results[c]["PTQ"]) for c in self.things]
@@ -322,13 +348,12 @@ class NuScenesPanopticEval:
         Dump evaluation results to result.json
         :param results: {task_name: task_results}, evaluation results in a dictionary.
         """
-        if self.out_dir:
-            os.makedirs(self.out_dir, exist_ok=True)
-            with open(self.eval_result_file, 'w') as f:
-                json.dump(results, f, indent=2)
-        else:
+        if not self.out_dir:
             raise ValueError(f'Invalid output dir: {self.out_dir}')
 
+        os.makedirs(self.out_dir, exist_ok=True)
+        with open(self.eval_result_file, 'w') as f:
+            json.dump(results, f, indent=2)
         if self.verbose:
             print(f"======\nPanoptic nuScenes {self.task} evaluation for {self.eval_set}")
             print(json.dumps(results, indent=4, sort_keys=False))

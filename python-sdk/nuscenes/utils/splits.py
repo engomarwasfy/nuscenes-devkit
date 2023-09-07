@@ -160,29 +160,33 @@ def create_splits_logs(split: str, nusc: 'NuScenes') -> List[str]:
     # Load splits on a scene-level.
     scene_splits = create_splits_scenes(verbose=False)
 
-    assert split in scene_splits.keys(), 'Requested split {} which is not a known nuScenes split.'.format(split)
+    assert (
+        split in scene_splits.keys()
+    ), f'Requested split {split} which is not a known nuScenes split.'
 
     # Check compatibility of split with nusc_version.
     version = nusc.version
     if split in {'train', 'val', 'train_detect', 'train_track'}:
-        assert version.endswith('trainval'), \
-            'Requested split {} which is not compatible with NuScenes version {}'.format(split, version)
+        assert version.endswith(
+            'trainval'
+        ), f'Requested split {split} which is not compatible with NuScenes version {version}'
     elif split in {'mini_train', 'mini_val'}:
-        assert version.endswith('mini'), \
-            'Requested split {} which is not compatible with NuScenes version {}'.format(split, version)
+        assert version.endswith(
+            'mini'
+        ), f'Requested split {split} which is not compatible with NuScenes version {version}'
     elif split == 'test':
-        assert version.endswith('test'), \
-            'Requested split {} which is not compatible with NuScenes version {}'.format(split, version)
+        assert version.endswith(
+            'test'
+        ), f'Requested split {split} which is not compatible with NuScenes version {version}'
     else:
-        raise ValueError('Requested split {} which this function cannot map to logs.'.format(split))
+        raise ValueError(
+            f'Requested split {split} which this function cannot map to logs.'
+        )
 
     # Get logs for this split.
     scene_to_log = {scene['name']: nusc.get('log', scene['log_token'])['logfile'] for scene in nusc.scene}
-    logs = set()
     scenes = scene_splits[split]
-    for scene in scenes:
-        logs.add(scene_to_log[scene])
-
+    logs = {scene_to_log[scene] for scene in scenes}
     return list(logs)
 
 
@@ -208,7 +212,7 @@ def create_splits_scenes(verbose: bool = False) -> Dict[str, List[str]]:
     if verbose:
         for split, scenes in scene_splits.items():
             print('%s: %d' % (split, len(scenes)))
-            print('%s' % scenes)
+            print(f'{scenes}')
 
     return scene_splits
 

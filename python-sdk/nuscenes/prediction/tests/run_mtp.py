@@ -34,11 +34,7 @@ class Dataset(IterableDataset):
             agent_state_vector = torch.ones(3)
             ground_truth = torch.ones((1, 12, 2))
 
-            if self.num_modes == 1:
-                going_forward = True
-            else:
-                going_forward = np.random.rand() > 0.25
-
+            going_forward = True if self.num_modes == 1 else np.random.rand() > 0.25
             if going_forward:
                 ground_truth[:, :, 1] = torch.arange(0, 6, step=0.5)
             else:

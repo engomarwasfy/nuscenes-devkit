@@ -73,14 +73,11 @@ def attr_acc(gt_box: DetectionBox, pred_box: DetectionBox) -> float:
     :param pred_box: Predicted sample.
     :return: Attribute classification accuracy (0 or 1) or nan if GT annotation does not have any attributes.
     """
-    if gt_box.attribute_name == '':
-        # If the class does not have attributes or this particular sample is missing attributes, return nan, which is
-        # ignored later. Note that about 0.4% of the sample_annotations have no attributes, although they should.
-        acc = np.nan
-    else:
-        # Check that label is correct.
-        acc = float(gt_box.attribute_name == pred_box.attribute_name)
-    return acc
+    return (
+        np.nan
+        if gt_box.attribute_name == ''
+        else float(gt_box.attribute_name == pred_box.attribute_name)
+    )
 
 
 def scale_iou(sample_annotation: EvalBox, sample_result: EvalBox) -> float:
@@ -104,9 +101,7 @@ def scale_iou(sample_annotation: EvalBox, sample_result: EvalBox) -> float:
     volume_result = np.prod(sr_size)
     intersection = np.prod(min_wlh)  # type: float
     union = volume_annotation + volume_result - intersection  # type: float
-    iou = intersection / union
-
-    return iou
+    return intersection / union
 
 
 def quaternion_yaw(q: Quaternion) -> float:
@@ -121,10 +116,7 @@ def quaternion_yaw(q: Quaternion) -> float:
     # Project into xy plane.
     v = np.dot(q.rotation_matrix, np.array([1, 0, 0]))
 
-    # Measure yaw using arctan.
-    yaw = np.arctan2(v[1], v[0])
-
-    return yaw
+    return np.arctan2(v[1], v[0])
 
 
 def boxes_to_sensor(boxes: List[EvalBox], pose_record: Dict, cs_record: Dict):
@@ -162,8 +154,7 @@ def cummean(x: np.array) -> np.array:
     if sum(np.isnan(x)) == len(x):
         # Is all numbers in array are NaN's.
         return np.ones(len(x))  # If all errors are NaN set to error to 1 for all operating points.
-    else:
-        # Accumulate in a nan-aware manner.
-        sum_vals = np.nancumsum(x.astype(float))  # Cumulative sum ignoring nans.
-        count_vals = np.cumsum(~np.isnan(x))  # Number of non-nans up to each position.
-        return np.divide(sum_vals, count_vals, out=np.zeros_like(sum_vals), where=count_vals != 0)
+    # Accumulate in a nan-aware manner.
+    sum_vals = np.nancumsum(x.astype(float))  # Cumulative sum ignoring nans.
+    count_vals = np.cumsum(~np.isnan(x))  # Number of non-nans up to each position.
+    return np.divide(sum_vals, count_vals, out=np.zeros_like(sum_vals), where=count_vals != 0)

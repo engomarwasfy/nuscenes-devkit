@@ -263,7 +263,7 @@ class TestAlgo(unittest.TestCase):
 
         def create_tracks(_scenario, tag=None):
             tracks = {}
-            for entry_id, entry in enumerate(_scenario['input']['pos_'+tag]):
+            for entry_id, entry in enumerate(_scenario['input'][f'pos_{tag}']):
                 tracking_id = 'tag_{}'.format(entry_id)
                 for timestamp, pos in enumerate(entry):
                     if timestamp not in tracks.keys():

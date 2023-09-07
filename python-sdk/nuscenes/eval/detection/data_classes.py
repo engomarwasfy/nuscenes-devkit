@@ -75,7 +75,7 @@ class DetectionConfig:
         if self.dist_fcn == 'center_distance':
             return center_distance
         else:
-            raise Exception('Error: Unknown distance function %s!' % self.dist_fcn)
+            raise Exception(f'Error: Unknown distance function {self.dist_fcn}!')
 
 
 class DetectionMetricData(MetricData):
@@ -129,12 +129,7 @@ class DetectionMetricData(MetricData):
 
         # Last instance of confidence > 0 is index of max achieved recall.
         non_zero = np.nonzero(self.confidence)[0]
-        if len(non_zero) == 0:  # If there are no matches, all the confidence values will be zero.
-            max_recall_ind = 0
-        else:
-            max_recall_ind = non_zero[-1]
-
-        return max_recall_ind
+        return 0 if len(non_zero) == 0 else non_zero[-1]
 
     @property
     def max_recall(self):
@@ -232,10 +227,10 @@ class DetectionMetrics:
         """ Calculates the mean true positive error across all classes for each metric. """
         errors = {}
         for metric_name in TP_METRICS:
-            class_errors = []
-            for detection_name in self.cfg.class_names:
-                class_errors.append(self.get_label_tp(detection_name, metric_name))
-
+            class_errors = [
+                self.get_label_tp(detection_name, metric_name)
+                for detection_name in self.cfg.class_names
+            ]
             errors[metric_name] = float(np.nanmean(class_errors))
 
         return errors
@@ -262,13 +257,10 @@ class DetectionMetrics:
         Compute the nuScenes detection score (NDS, weighted sum of the individual scores).
         :return: The NDS.
         """
-        # Summarize.
-        total = float(self.cfg.mean_ap_weight * self.mean_ap + np.sum(list(self.tp_scores.values())))
-
-        # Normalize.
-        total = total / float(self.cfg.mean_ap_weight + len(self.tp_scores.keys()))
-
-        return total
+        return float(
+            self.cfg.mean_ap_weight * self.mean_ap
+            + np.sum(list(self.tp_scores.values()))
+        ) / float(self.cfg.mean_ap_weight + len(self.tp_scores.keys()))
 
     def serialize(self):
         return {
@@ -307,9 +299,7 @@ class DetectionMetrics:
         eq = eq and self._label_aps == other._label_aps
         eq = eq and self._label_tp_errors == other._label_tp_errors
         eq = eq and self.eval_time == other.eval_time
-        eq = eq and self.cfg == other.cfg
-
-        return eq
+        return eq and self.cfg == other.cfg
 
 
 class DetectionBox(EvalBox):
@@ -330,10 +320,13 @@ class DetectionBox(EvalBox):
         super().__init__(sample_token, translation, size, rotation, velocity, ego_translation, num_pts)
 
         assert detection_name is not None, 'Error: detection_name cannot be empty!'
-        assert detection_name in DETECTION_NAMES, 'Error: Unknown detection_name %s' % detection_name
+        assert (
+            detection_name in DETECTION_NAMES
+        ), f'Error: Unknown detection_name {detection_name}'
 
-        assert attribute_name in ATTRIBUTE_NAMES or attribute_name == '', \
-            'Error: Unknown attribute_name %s' % attribute_name
+        assert (
+            attribute_name in ATTRIBUTE_NAMES or not attribute_name
+        ), f'Error: Unknown attribute_name {attribute_name}'
 
         assert type(detection_score) == float, 'Error: detection_score must be a float!'
         assert not np.any(np.isnan(detection_score)), 'Error: detection_score may not be NaN!'
@@ -414,7 +407,10 @@ class DetectionMetricDataList:
         self.md[(detection_name, match_distance)] = data
 
     def serialize(self) -> dict:
-        return {key[0] + ':' + str(key[1]): value.serialize() for key, value in self.md.items()}
+        return {
+            f'{key[0]}:{str(key[1])}': value.serialize()
+            for key, value in self.md.items()
+        }
 
     @classmethod
     def deserialize(cls, content: dict):

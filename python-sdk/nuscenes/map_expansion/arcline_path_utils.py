@@ -21,8 +21,7 @@ def principal_value(angle_in_radians: float) -> float:
 
     interval_min = -math.pi
     two_pi = 2 * math.pi
-    scaled_angle = (angle_in_radians - interval_min) % two_pi + interval_min
-    return scaled_angle
+    return (angle_in_radians - interval_min) % two_pi + interval_min
 
 
 def compute_segment_sign(arcline_path: ArcLinePath) -> Tuple[int, int, int]:
@@ -35,23 +34,15 @@ def compute_segment_sign(arcline_path: ArcLinePath) -> Tuple[int, int, int]:
     shape = arcline_path['shape']
     segment_sign = [0, 0, 0]
 
-    if shape in ("LRL", "LSL", "LSR"):
-        segment_sign[0] = 1
-    else:
-        segment_sign[0] = -1
-
-    if shape == "RLR":
-        segment_sign[1] = 1
-    elif shape == "LRL":
+    segment_sign[0] = 1 if shape in ("LRL", "LSL", "LSR") else -1
+    if shape == "LRL":
         segment_sign[1] = -1
+    elif shape == "RLR":
+        segment_sign[1] = 1
     else:
         segment_sign[1] = 0
 
-    if shape in ("LRL", "LSL", "RSL"):
-        segment_sign[2] = 1
-    else:
-        segment_sign[2] = -1
-
+    segment_sign[2] = 1 if shape in ("LRL", "LSL", "RSL") else -1
     return segment_sign[0], segment_sign[1], segment_sign[2]
 
 
@@ -70,10 +61,9 @@ def get_transformation_at_step(pose: Pose,
 
     if abs(pose[2]) < 1e-6:
         return pose[0] * step, pose[1] * step, theta
-    else:
-        new_x = (pose[1] * (ctheta - 1.0) + pose[0] * stheta) / pose[2]
-        new_y = (pose[0] * (1.0 - ctheta) + pose[1] * stheta) / pose[2]
-        return new_x, new_y, theta
+    new_x = (pose[1] * (ctheta - 1.0) + pose[0] * stheta) / pose[2]
+    new_y = (pose[0] * (1.0 - ctheta) + pose[1] * stheta) / pose[2]
+    return new_x, new_y, theta
 
 
 def apply_affine_transformation(pose: Pose,
@@ -202,8 +192,7 @@ def discretize_lane(lane: List[ArcLinePath],
     pose_list = []
     for path in lane:
         poses = discretize(path, resolution_meters)
-        for pose in poses:
-            pose_list.append(pose)
+        pose_list.extend(iter(poses))
     return pose_list
 
 
@@ -277,7 +266,4 @@ def get_curvature_at_distance_along_lane(distance_along_lane: float, lane: List[
     segment_shape = path['shape'][segment_index]
 
     # Straight lanes have no curvature
-    if segment_shape == 'S':
-        return 0
-    else:
-        return 1 / path['radius']
+    return 0 if segment_shape == 'S' else 1 / path['radius']

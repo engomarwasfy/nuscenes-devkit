@@ -20,7 +20,7 @@ class MapMask:
         :param img_file: File path to map png file.
         :param resolution: Map resolution in meters.
         """
-        assert osp.exists(img_file), 'map mask {} does not exist'.format(img_file)
+        assert osp.exists(img_file), f'map mask {img_file} does not exist'
         assert resolution >= 0.1, "Only supports down to 0.1 meter resolution."
         self.img_file = img_file
         self.resolution = resolution
@@ -36,10 +36,9 @@ class MapMask:
         """
         if dilation == 0:
             return self._base_mask
-        else:
-            distance_mask = cv2.distanceTransform((self.foreground - self._base_mask).astype(np.uint8), cv2.DIST_L2, 5)
-            distance_mask = (distance_mask * self.resolution).astype(np.float32)
-            return (distance_mask <= dilation).astype(np.uint8) * self.foreground
+        distance_mask = cv2.distanceTransform((self.foreground - self._base_mask).astype(np.uint8), cv2.DIST_L2, 5)
+        distance_mask = (distance_mask * self.resolution).astype(np.float32)
+        return (distance_mask <= dilation).astype(np.uint8) * self.foreground
 
     @property
     def transform_matrix(self) -> np.ndarray:
@@ -109,6 +108,4 @@ class MapMask:
         size_y = int(img.size[1] / self.resolution * native_resolution)
         img = img.resize((size_x, size_y), resample=Image.NEAREST)
 
-        # Convert to numpy.
-        raw_mask = np.array(img)
-        return raw_mask
+        return np.array(img)

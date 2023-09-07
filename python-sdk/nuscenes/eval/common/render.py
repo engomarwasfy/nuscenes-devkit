@@ -38,16 +38,14 @@ def setup_axis(xlabel: str = None,
     ax.get_yaxis().tick_left()
 
     # Hide the selected axes spines.
-    if show_spines in ['bottomleft', 'none']:
+    if show_spines in {'bottomleft', 'none'}:
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
 
         if show_spines == 'none':
             ax.spines['bottom'].set_visible(False)
             ax.spines['left'].set_visible(False)
-    elif show_spines in ['all']:
-        pass
-    else:
+    elif show_spines not in ['all']:
         raise NotImplementedError
 
     if title is not None:

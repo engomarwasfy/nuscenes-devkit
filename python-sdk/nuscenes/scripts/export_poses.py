@@ -33,14 +33,12 @@ def get_poses(nusc: NuScenes, scene_token: str) -> List[dict]:
     :param scene_token: The token of the scene.
     :return: A list of the ego pose dicts.
     """
-    pose_list = []
     scene_rec = nusc.get('scene', scene_token)
     sample_rec = nusc.get('sample', scene_rec['first_sample_token'])
     sd_rec = nusc.get('sample_data', sample_rec['data']['LIDAR_TOP'])
-    
-    ego_pose = nusc.get('ego_pose', sd_rec['token'])
-    pose_list.append(ego_pose)
 
+    ego_pose = nusc.get('ego_pose', sd_rec['token'])
+    pose_list = [ego_pose]
     while sd_rec['next'] != '':
         sd_rec = nusc.get('sample_data', sd_rec['next'])
         ego_pose = nusc.get('ego_pose', sd_rec['token'])
@@ -162,7 +160,7 @@ def main(dataroot: str, version: str, output_prefix: str, output_format: str = '
     nusc = NuScenes(dataroot=dataroot, version=version, verbose=False)
 
     coordinates_per_location = {}
-    print(f'Extracting coordinates...')
+    print('Extracting coordinates...')
     for scene in tqdm(nusc.scene):
         # Retrieve nuScenes poses.
         scene_name = scene['name']
@@ -190,7 +188,7 @@ def main(dataroot: str, version: str, output_prefix: str, output_format: str = '
         # Write to kml.
         export_kml(coordinates_per_location, output_path)
     else:
-        raise Exception('Error: Invalid output format: %s' % output_format)
+        raise Exception(f'Error: Invalid output format: {output_format}')
 
     print(f"Saved the coordinates in {output_path}")
 

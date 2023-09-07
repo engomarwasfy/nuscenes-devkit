@@ -39,7 +39,7 @@ def post_process_coords(corner_coords: List,
 
     if polygon_from_2d_box.intersects(img_canvas):
         img_intersection = polygon_from_2d_box.intersection(img_canvas)
-        intersection_coords = np.array([coord for coord in img_intersection.exterior.coords])
+        intersection_coords = np.array(list(img_intersection.exterior.coords))
 
         min_x = min(intersection_coords[:, 0])
         min_y = min(intersection_coords[:, 1])
@@ -189,7 +189,9 @@ def main(args):
     with open(os.path.join(args.dataroot, args.version, args.filename), 'w') as fh:
         json.dump(reprojections, fh, sort_keys=True, indent=4)
 
-    print("Saved the 2D re-projections under {}".format(os.path.join(args.dataroot, args.version, args.filename)))
+    print(
+        f"Saved the 2D re-projections under {os.path.join(args.dataroot, args.version, args.filename)}"
+    )
 
 
 if __name__ == '__main__':

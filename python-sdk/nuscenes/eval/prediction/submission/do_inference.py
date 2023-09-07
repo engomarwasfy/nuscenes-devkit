@@ -39,11 +39,7 @@ def do_inference_for_submission(helper: PredictHelper,
 
     cv_heading = load_model(helper, config, path_to_model_weights)
 
-    cv_preds = []
-    for token in dataset_tokens:
-        cv_preds.append(cv_heading(token))
-
-    return cv_preds
+    return [cv_heading(token) for token in dataset_tokens]
 
 
 def main(version: str, data_root: str, split_name: str, output_dir: str, submission_name: str, config_name: str) \

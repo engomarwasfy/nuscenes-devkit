@@ -336,13 +336,15 @@ class OffRoadRate(Metric):
 
         maps: Dict[str, NuScenesMap] = load_all_maps(helper)
 
-        masks = {}
-        for map_name, map_api in maps.items():
-
-            masks[map_name] = map_api.get_map_mask(patch_box=None, patch_angle=0, layer_names=['drivable_area'],
-                                                   canvas_size=None)[0]
-
-        return masks
+        return {
+            map_name: map_api.get_map_mask(
+                patch_box=None,
+                patch_angle=0,
+                layer_names=['drivable_area'],
+                canvas_size=None,
+            )[0]
+            for map_name, map_api in maps.items()
+        }
 
     @staticmethod
     def interpolate_path(mode: np.ndarray, number_of_points: int) -> Tuple[np.ndarray, np.ndarray]:
@@ -365,10 +367,9 @@ class OffRoadRate(Metric):
 
         if unique_points.shape[0] <= 3:
             return unique_points[:, 0], unique_points[:, 1]
-        else:
-            knots, _ = interpolate.splprep([unique_points[:, 0], unique_points[:, 1]], k=3, s=0.1)
-            x_interpolated, y_interpolated = interpolate.splev(np.linspace(0, 1, number_of_points), knots)
-            return x_interpolated, y_interpolated
+        knots, _ = interpolate.splprep([unique_points[:, 0], unique_points[:, 1]], k=3, s=0.1)
+        x_interpolated, y_interpolated = interpolate.splev(np.linspace(0, 1, number_of_points), knots)
+        return x_interpolated, y_interpolated
 
     def __call__(self, ground_truth: np.ndarray, prediction: Prediction) -> np.ndarray:
         """

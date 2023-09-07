@@ -81,7 +81,7 @@ class EvalBoxes:
         self.boxes = defaultdict(list)
 
     def __repr__(self):
-        return "EvalBoxes with {} boxes across {} samples".format(len(self.all), len(self.sample_tokens))
+        return f"EvalBoxes with {len(self.all)} boxes across {len(self.sample_tokens)} samples"
 
     def __getitem__(self, item) -> List[EvalBoxType]:
         return self.boxes[item]

@@ -24,7 +24,7 @@ def export_videos(nusc: NuScenes, out_dir: str):
     # Write videos to disk
     for scene_token in scene_tokens:
         scene = nusc.get('scene', scene_token)
-        print('Writing scene %s' % scene['name'])
+        print(f"Writing scene {scene['name']}")
         out_path = os.path.join(out_dir, scene['name']) + '.avi'
         if not os.path.exists(out_path):
             nusc.render_scene(scene['token'], out_path=out_path)

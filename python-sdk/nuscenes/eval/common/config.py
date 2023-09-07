@@ -21,8 +21,12 @@ def config_factory(configuration_name: str) -> Union[DetectionConfig, TrackingCo
     assert len(tokens) > 1, 'Error: Configuration name must be have prefix "detection_" or "tracking_"!'
     task = tokens[0]
     this_dir = os.path.dirname(os.path.abspath(__file__))
-    cfg_path = os.path.join(this_dir, '..', task, 'configs', '%s.json' % configuration_name)
-    assert os.path.exists(cfg_path), 'Requested unknown configuration {}'.format(configuration_name)
+    cfg_path = os.path.join(
+        this_dir, '..', task, 'configs', f'{configuration_name}.json'
+    )
+    assert os.path.exists(
+        cfg_path
+    ), f'Requested unknown configuration {configuration_name}'
 
     # Load config file and deserialize it.
     with open(cfg_path, 'r') as f:
@@ -32,6 +36,6 @@ def config_factory(configuration_name: str) -> Union[DetectionConfig, TrackingCo
     elif task == 'tracking':
         cfg = TrackingConfig.deserialize(data)
     else:
-        raise Exception('Error: Invalid config file name: %s' % configuration_name)
+        raise Exception(f'Error: Invalid config file name: {configuration_name}')
 
     return cfg

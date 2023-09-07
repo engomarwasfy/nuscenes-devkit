@@ -72,7 +72,7 @@ def interpolate_tracks(tracks_by_timestamp: DefaultDict[int, List[TrackingBox]])
     timestamps = tracks_by_timestamp.keys()
     interpolate_count = 0
     for timestamp in timestamps:
-        for tracking_id, track in tracks_by_id.items():
+        for tracking_id in tracks_by_id:
             if track_timestamps_by_id[tracking_id][0] <= timestamp <= track_timestamps_by_id[tracking_id][-1] and \
                     timestamp not in track_timestamps_by_id[tracking_id]:
 
@@ -93,8 +93,7 @@ def interpolate_tracks(tracks_by_timestamp: DefaultDict[int, List[TrackingBox]])
     return tracks_by_timestamp
 
 
-def create_tracks(all_boxes: EvalBoxes, nusc: NuScenes, eval_split: str, gt: bool) \
-        -> Dict[str, Dict[int, List[TrackingBox]]]:
+def create_tracks(all_boxes: EvalBoxes, nusc: NuScenes, eval_split: str, gt: bool) -> Dict[str, Dict[int, List[TrackingBox]]]:
     """
     Returns all tracks for all scenes. Samples within a track are sorted in chronological order.
     This can be applied either to GT or predictions.
@@ -149,18 +148,17 @@ def create_tracks(all_boxes: EvalBoxes, nusc: NuScenes, eval_split: str, gt: boo
                 for box in boxes:
                     track_id_scores[box.tracking_id].append(box.tracking_score)
 
-            # Compute average scores for each track.
-            track_id_avg_scores = {}
-            for tracking_id, scores in track_id_scores.items():
-                track_id_avg_scores[tracking_id] = np.mean(scores)
-
+            track_id_avg_scores = {
+                tracking_id: np.mean(scores)
+                for tracking_id, scores in track_id_scores.items()
+            }
             # Apply average score to each box.
             for timestamp, boxes in scene_tracks.items():
                 for box in boxes:
                     box.tracking_score = track_id_avg_scores[box.tracking_id]
 
     # Interpolate GT and predicted tracks.
-    for scene_token in tracks.keys():
+    for scene_token in tracks:
         tracks[scene_token] = interpolate_tracks(tracks[scene_token])
 
         if not gt:

@@ -6,8 +6,6 @@ import numpy as np
 def get_scenarios() -> List[Dict[str, dict]]:
     """ """
 
-    scenarios = []
-
     # Scenario 1.
     # Parallel motion 1 meter distance.
     pos_gt = np.array([[(1, -3), (1, -2), (1, -1), (1, -0)],
@@ -20,8 +18,7 @@ def get_scenarios() -> List[Dict[str, dict]]:
                   'pos_pred': pos_pred}
     output_data = {'ids': 0.0}
 
-    scenarios.append({'input': input_data, 'output': output_data})
-
+    scenarios = [{'input': input_data, 'output': output_data}]
     # Scenario 2.
     # Parallel motion bring closer predictions.
     pos_gt = np.array([[(1, -3), (1, -2), (1, -1), (1, -0)],
